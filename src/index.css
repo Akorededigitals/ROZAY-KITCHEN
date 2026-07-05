@@ -1,0 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;950&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Poppins', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: 'Poppins', sans-serif;
+  --font-serif: 'Poppins', serif;
+  --font-mono: 'Poppins', monospace;
+  
+  --color-brand-50: #fffdf2;     /* Bright elegant royal ivory cream background */
+  --color-brand-100: #fff9d1;    /* Radiant glowing sunlit highlights */
+  --color-brand-200: #fff1a0;    /* Sparkling warm luxury gold */
+  --color-brand-300: #ffde5c;    /* Beautiful bright golden brass */
+  --color-brand-400: #fbbd1e;    /* Intensely rich sunlit amber */
+  --color-brand-500: #eab308;    /* True glowing brilliant gold standard */
+  --color-brand-600: #ca8a04;    /* Polished golden-copper accent */
+  --color-brand-700: #a16207;    /* Saffron-ochre signature shadow */
+  --color-brand-800: #854d0e;    /* Deep premium warm wood handle gold */
+  --color-brand-900: #713f12;    /* Refined luxurious espresso gold */
+  --color-brand-950: #422006;    /* Dark supreme cacao-bean contrast */
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+}
