@@ -7,7 +7,7 @@ import {
   DollarSign, TrendingUp, Inbox, Calendar, Check, X, Tag, ShoppingBag, Database, WifiOff
 } from "lucide-react";
 import { CATEGORIES } from "../data";
-import { getDbOrders, getDbSubmissions, isSupabaseConfigured, supabase } from "../lib/supabase";
+import { getDbOrders, getDbSubmissions, isSupabaseConfigured, supabase, getProductImageUrl } from "../lib/supabase";
 
 interface AdminDashboardProps {
   products: Product[];
@@ -764,7 +764,7 @@ export default function AdminDashboard({
                 {products.map((p) => (
                   <div key={p.id} className="pt-4 first:pt-0 flex gap-4 items-start">
                     <img
-                      src={p.image}
+                      src={getProductImageUrl(p.image)}
                       alt={p.name}
                       loading="lazy"
                             decoding="async"

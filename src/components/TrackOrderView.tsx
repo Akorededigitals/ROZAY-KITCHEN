@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion } from "motion/react";
 import { Search, Package, MapPin, Truck, CheckCircle2, ArrowRight } from "lucide-react";
 import { Order } from "../types";
-import { getDbOrders } from "../lib/supabase";
+import { getDbOrders, getProductImageUrl } from "../lib/supabase";
 import { Link } from "react-router-dom";
 
 export default function TrackOrderView() {
@@ -166,7 +166,7 @@ export default function TrackOrderView() {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gray-50 rounded-md overflow-hidden flex items-center justify-center">
                           {item.image ? (
-                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                            <img src={getProductImageUrl(item.image)} alt={item.name} className="w-full h-full object-cover" />
                           ) : (
                             <Package className="w-5 h-5 text-gray-300" />
                           )}

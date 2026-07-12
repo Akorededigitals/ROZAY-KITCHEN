@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Product, Order } from "../types";
-import { addDbOrder, addDbSubmission } from "../lib/supabase";
+import { addDbOrder, addDbSubmission, getProductImageUrl } from "../lib/supabase";
 import { 
   ShoppingBag, Trash2, ArrowLeft, ShieldCheck, CreditCard,
   Phone, Mail, User, MapPin, Tag, Truck, Check, HelpCircle,
@@ -368,7 +368,7 @@ This summary is prepared for Rozay Kitchen Fulfillment Center Lagos State. Pleas
                       <div key={item.product.id} className="py-4.5 flex gap-4 first:pt-0 last:pb-0 items-start">
                         <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-stone-50 overflow-hidden shrink-0 border border-gray-100">
                           <img
-                            src={item.product.image}
+                            src={getProductImageUrl(item.product.image)}
                             alt={item.product.name}
                             loading="lazy"
                             decoding="async"

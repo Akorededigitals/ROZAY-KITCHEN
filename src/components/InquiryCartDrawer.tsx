@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, Trash2, ShoppingBag, Plus, Minus, Send, Clipboard, Check, Sparkles } from "lucide-react";
 import { InquiryItem } from "../types";
 import { BRAND_INFO } from "../data";
+import { getProductImageUrl } from "../lib/supabase";
 
 interface InquiryCartDrawerProps {
   isOpen: boolean;
@@ -165,7 +166,7 @@ export default function InquiryCartDrawer({
                         className="flex items-center gap-3.5 py-2.5 first:pt-0"
                       >
                         <img
-                          src={item.product.image}
+                          src={getProductImageUrl(item.product.image)}
                           alt={item.product.name}
                             loading="lazy"
                             decoding="async"

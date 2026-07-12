@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { Product, Review } from "../types";
+import { getProductImageUrl } from "../lib/supabase";
 import { 
   ArrowLeft, Star, ShoppingBag, Truck, ShieldCheck, 
   Sparkles, Heart, CheckCircle2, MessageCircle, Send,
@@ -177,7 +178,7 @@ export default function ProductDetailView({
             <div className="relative w-full pt-[100%] sm:pt-[0] sm:aspect-square sm:[min-height:350px] bg-white rounded-2xl overflow-hidden border border-gray-100 group">
               {product.image ? (
                 <img
-                  src={product.image}
+                  src={getProductImageUrl(product.image)}
                   alt={product.name}
                   
                   loading="lazy"
@@ -657,7 +658,7 @@ export default function ProductDetailView({
                   <div className="relative w-full pt-[100%] bg-white overflow-hidden">
                     {rel.image ? (
                       <img
-                        src={rel.image}
+                        src={getProductImageUrl(rel.image)}
                         alt={rel.name}
                         
                         loading="lazy"

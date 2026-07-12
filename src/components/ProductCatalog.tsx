@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Search, X, ChevronRight, Plus, Check, Info, ArrowUpRight, Flame, BadgeAlert, ShoppingBag, Trash2, Send, Copy, Sparkles, CheckCircle2 } from "lucide-react";
 import { Product, InquiryItem } from "../types";
 import { PRODUCTS_DATA, CATEGORIES, BRAND_INFO } from "../data";
+import { getProductImageUrl } from "../lib/supabase";
 
 interface ProductCatalogProps {
   key?: string;
@@ -173,7 +174,7 @@ export default function ProductCatalog({
                     <div className="relative w-full pt-[100%] shrink-0 bg-white overflow-hidden">
                       {product.image ? (
                         <img
-                          src={product.image}
+                          src={getProductImageUrl(product.image)}
                           alt={product.name}
                           
                           loading="lazy"

@@ -412,3 +412,20 @@ export async function addDbSubmission(sub: ContactForm): Promise<void> {
     }
   }
 }
+
+export function getProductImageUrl(imagePath: string | undefined | null): string {
+  if (!imagePath) return "";
+  if (imagePath.startsWith("http") || imagePath.startsWith("data:")) {
+    return imagePath;
+  }
+  
+  // Extract filename in case it has /images/ or other prefixes
+  const parts = imagePath.split("/");
+  const filename = parts[parts.length - 1];
+  
+  if (isSupabaseConfigured && supabase) {
+    const { data } = supabase.storage.from("product-images").getPublicUrl(filename);
+    return data.publicUrl;
+  }
+  return imagePath; // Fallback
+}
