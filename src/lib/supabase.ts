@@ -157,7 +157,28 @@ export async function addDbProduct(newProduct: Omit<Product, "id">): Promise<Pro
 
 export async function updateDbProduct(updatedProduct: Product): Promise<void> {
   try {
+    let oldImageUrl: string | undefined;
+
+    // Fetch old image URL from local cache
+    const localRaw = localStorage.getItem("rozay_products");
+    let currentLocal: Product[] = [];
+    if (localRaw) {
+      currentLocal = JSON.parse(localRaw);
+    }
+    const exists = currentLocal.find(p => p.id === updatedProduct.id);
+    if (exists) {
+      oldImageUrl = exists.image;
+    }
+
     if (isSupabaseConfigured && supabase) {
+      // If not in local cache, fetch from Supabase
+      if (!oldImageUrl) {
+        const { data } = await supabase.from("products").select("image").eq("id", updatedProduct.id).single();
+        if (data && data.image) {
+          oldImageUrl = data.image;
+        }
+      }
+
       const { error } = await supabase
         .from("products")
         .update({
@@ -175,15 +196,20 @@ export async function updateDbProduct(updatedProduct: Product): Promise<void> {
         .eq("id", updatedProduct.id);
       
       if (error) throw error;
+
+      // Clean up old image if it was replaced
+      if (oldImageUrl && oldImageUrl !== updatedProduct.image && oldImageUrl.includes("product-images")) {
+        const parts = oldImageUrl.split("/");
+        const fileName = parts[parts.length - 1];
+        if (fileName) {
+          // Do not await, fire and forget to avoid blocking
+          supabase.storage.from("product-images").remove([fileName]).catch(err => {
+            console.error("Failed to delete old image", err);
+          });
+        }
+      }
     }
 
-    // Update local cache robustly
-    const localRaw = localStorage.getItem("rozay_products");
-    let currentLocal: Product[] = [];
-    if (localRaw) {
-      currentLocal = JSON.parse(localRaw);
-    }
-    const exists = currentLocal.find(p => p.id === updatedProduct.id);
     if (exists) {
         const updatedLocal = currentLocal.map(p => p.id === updatedProduct.id ? updatedProduct : p);
         localStorage.setItem("rozay_products", JSON.stringify(updatedLocal));
@@ -199,19 +225,44 @@ export async function updateDbProduct(updatedProduct: Product): Promise<void> {
 
 export async function deleteDbProduct(productId: string): Promise<void> {
   try {
+    let imageUrlToRemove: string | undefined;
+
+    const localRaw = localStorage.getItem("rozay_products");
+    if (localRaw) {
+      const currentLocal: Product[] = JSON.parse(localRaw);
+      const productToDelete = currentLocal.find((p: Product) => p.id === productId);
+      if (productToDelete) {
+        imageUrlToRemove = productToDelete.image;
+      }
+    }
+
     if (isSupabaseConfigured && supabase) {
+      if (!imageUrlToRemove) {
+        const { data } = await supabase.from("products").select("image").eq("id", productId).single();
+        if (data && data.image) {
+          imageUrlToRemove = data.image;
+        }
+      }
+
       const { error } = await supabase
         .from("products")
         .delete()
         .eq("id", productId);
       if (error) throw error;
+
+      if (imageUrlToRemove && imageUrlToRemove.includes("product-images")) {
+        const parts = imageUrlToRemove.split("/");
+        const fileName = parts[parts.length - 1];
+        if (fileName) {
+          await supabase.storage.from("product-images").remove([fileName]);
+        }
+      }
     }
 
     // Update local cache robustly
-    const localRaw = localStorage.getItem("rozay_products");
     if (localRaw) {
       const currentLocal: Product[] = JSON.parse(localRaw);
-      const updatedLocal = currentLocal.filter(p => p.id !== productId);
+      const updatedLocal = currentLocal.filter((p: Product) => p.id !== productId);
       localStorage.setItem("rozay_products", JSON.stringify(updatedLocal));
     }
   } catch (error) {

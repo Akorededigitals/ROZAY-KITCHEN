@@ -100,13 +100,9 @@ export default function AdminDashboard({
     setUploadError("");
 
     if (!isSupabaseConfigured || !supabase) {
-      console.warn("Supabase env vars missing. Falling back to local data URL.");
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setUploadedImageUrl(e.target?.result as string);
-        setIsUploading(false);
-      };
-      reader.readAsDataURL(blob);
+      console.warn("Supabase env vars missing. Cannot upload image.");
+      setUploadError("Supabase is not configured. Please connect to Supabase to upload images.");
+      setIsUploading(false);
       return;
     }
 
@@ -226,7 +222,7 @@ export default function AdminDashboard({
       setSelectedImage(prod.image);
       setCustomImageUrl("");
       setUploadedImageUrl("");
-    } else if (prod.image.startsWith("data:")) {
+    } else if (prod.image.startsWith("data:") || prod.image.includes("supabase.co") || prod.image.includes("product-images")) {
       setSelectedImage("upload");
       setUploadedImageUrl(prod.image);
       setCustomImageUrl("");
@@ -772,6 +768,7 @@ export default function AdminDashboard({
                       alt={p.name}
                       loading="lazy"
                             decoding="async"
+                          onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
                       
                       
                       

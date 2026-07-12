@@ -118,6 +118,7 @@ export default function Hero({ onShopNow }: HeroProps) {
                 alt="Rozay Kitchen premium products"
                 loading="eager"
                 decoding="async"
+                          onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
                 className="w-full h-full object-cover group-hover/banner:scale-[1.02] transition-transform duration-700"
               />
               {/* Overlay with local Lagos context */}

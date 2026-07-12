@@ -178,6 +178,7 @@ export default function ProductCatalog({
                           
                           loading="lazy"
                           decoding="async"
+                          onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
                           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (
