@@ -63,7 +63,7 @@ export default function AboutSection() {
             <div className="mt-8 pt-6 border-t border-gray-100 flex items-center gap-4">
               <div className="w-16 h-16 rounded-full overflow-hidden bg-stone-200 border-2 border-brand-500 shrink-0">
                 <img 
-                  src="https://picsum.photos/seed/ceo/200/200" 
+                  src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=200&h=200" 
                   alt="Alaekwe Onyebuchi" 
                   className="w-full h-full object-cover"
                   loading="lazy"

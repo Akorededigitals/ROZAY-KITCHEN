@@ -1,9 +1,13 @@
 import { useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { Product } from "../types";
 
-export default function SEOTags() {
+interface SEOTagsProps {
+  products?: Product[];
+}
+
+export default function SEOTags({ products = [] }: SEOTagsProps) {
   const location = useLocation();
-
   let title = "Rozay Kitchen | Premium Kitchen & Catering Equipment in Lagos";
   let metaDescription = "Lagos' premium destination for luxurious kitchen commodities, cooking pans, cookwares, coolers, and professional catering electronics in Idumota Market.";
   let url = `https://rozaykitchen.com${location.pathname}`;
@@ -32,8 +36,15 @@ export default function SEOTags() {
       metaDescription = "Get in touch with Rozay Kitchen via WhatsApp, email, or visit our physical store in Idumota Market, Lagos.";
       break;
     case location.pathname.startsWith("/product/"):
-      title = "Product Details | Premium Quality | Rozay Kitchen";
-      metaDescription = "Discover high-quality kitchen and catering equipment designed for durability and performance. Order now for nationwide delivery.";
+      const productId = location.pathname.split("/").pop();
+      const product = products.find(p => p.id === productId);
+      if (product) {
+        title = `${product.name} | ${product.category} | Rozay Kitchen`;
+        metaDescription = `Buy ${product.name} from Rozay Kitchen. Premium ${product.category.toLowerCase()} equipment. ${product.description.substring(0, 100)}...`;
+      } else {
+        title = "Product Details | Premium Quality | Rozay Kitchen";
+        metaDescription = "Discover high-quality kitchen and catering equipment designed for durability and performance. Order now for nationwide delivery.";
+      }
       break;
     case location.pathname === "/checkout":
       title = "Secure Checkout | Rozay Kitchen";
@@ -55,7 +66,7 @@ export default function SEOTags() {
       <meta property="og:url" content={url} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={metaDescription} />
-      <meta property="og:image" content="https://images.unsplash.com/photo-1556910103-1c02745a872f?auto=format&fit=crop&q=80&w=1200&h=630" />
+      <meta property="og:image" content="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Balogun_Market%2C_Lagos_Island.jpg/1200px-Balogun_Market%2C_Lagos_Island.jpg" />
       <meta property="og:site_name" content="Rozay Kitchen" />
       <meta property="og:locale" content="en_NG" />
 
@@ -64,7 +75,7 @@ export default function SEOTags() {
       <meta name="twitter:url" content={url} />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={metaDescription} />
-      <meta name="twitter:image" content="https://images.unsplash.com/photo-1556910103-1c02745a872f?auto=format&fit=crop&q=80&w=1200&h=630" />
+      <meta name="twitter:image" content="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Balogun_Market%2C_Lagos_Island.jpg/1200px-Balogun_Market%2C_Lagos_Island.jpg" />
 
       <link rel="canonical" href={url} />
     </Helmet>

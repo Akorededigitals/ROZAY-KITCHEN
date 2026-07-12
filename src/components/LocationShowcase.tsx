@@ -4,6 +4,7 @@ import { MapPin, Clock, Instagram, Send, Mail, Phone, ShoppingBag, ShieldCheck, 
 import { BRAND_INFO, CHOOSE_US_POINTS, PRODUCTS_DATA } from "../data";
 import { ContactForm } from "../types";
 import { addDbSubmission } from "../lib/supabase";
+import toast from "react-hot-toast";
 
 export default function LocationShowcase() {
   const [formData, setFormData] = useState<ContactForm>({
@@ -87,6 +88,7 @@ Sent via Rozay Kitchen Lagos Web Platform`;
 
     setIsSending(false);
     setSubmitted(true);
+    toast.success("Inquiry sent successfully! We will contact you shortly.");
 
     // Reset fields except mailto url helper
     setTimeout(() => {
@@ -115,7 +117,7 @@ Sent via Rozay Kitchen Lagos Web Platform`;
             Find Us in Lagos Island
           </h2>
           <p className="text-sm sm:text-base text-gray-500 max-w-md mx-auto">
-            Located in the prominent wholesale hub of Ebutero Market, Idumota. Ready to fulfill nationwide shipping.
+            Located in the prominent wholesale hub of Idumota Market, Lagos Island. Ready to fulfill nationwide shipping.
           </p>
           <div className="w-12 h-1 bg-brand-500 mx-auto rounded-full mt-4" />
         </div>

@@ -7,7 +7,7 @@ import {
   DollarSign, TrendingUp, Inbox, Calendar, Check, X, Tag, ShoppingBag, Database, WifiOff
 } from "lucide-react";
 import { CATEGORIES } from "../data";
-import { getDbOrders, getDbSubmissions, isSupabaseConfigured } from "../lib/supabase";
+import { getDbOrders, getDbSubmissions, isSupabaseConfigured, supabase } from "../lib/supabase";
 
 interface AdminDashboardProps {
   products: Product[];
@@ -19,9 +19,9 @@ interface AdminDashboardProps {
 }
 
 const PRESET_IMAGES = [
-  { label: "Chafing Dishes (Gold/Steel)", value: "/images/luxury_chafing_dish_1781992841526.jpg" },
-  { label: "Elite Cookware Pot (Rose-gold)", value: "/images/premium_pots_set_1781992854112.jpg" },
-  { label: "Luxury Kitchen Hero Banner", value: "/images/balogun_market.jpg" }
+  { label: "Chafing Dishes (Gold/Steel)", value: "https://picsum.photos/seed/chafingdish/800/800" },
+  { label: "Elite Cookware Pot (Rose-gold)", value: "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800" },
+  { label: "Luxury Kitchen Hero Banner", value: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Balogun_Market%2C_Lagos_Island.jpg/1280px-Balogun_Market%2C_Lagos_Island.jpg" }
 ];
 
 export default function AdminDashboard({
@@ -54,7 +54,10 @@ export default function AdminDashboard({
   const [featuresText, setFeaturesText] = useState("");
   const [selectedImage, setSelectedImage] = useState(PRESET_IMAGES[0].value);
   const [customImageUrl, setCustomImageUrl] = useState("");
-  const [uploadedImageBase64, setUploadedImageBase64] = useState("");
+  const [uploadedImageUrl, setUploadedImageUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState("");
   const [isDragActive, setIsDragActive] = useState(false);
   const [formSuccess, setFormSuccess] = useState("");
 
@@ -91,6 +94,51 @@ export default function AdminDashboard({
     }
   };
 
+  const uploadToSupabase = async (blob: Blob) => {
+    setIsUploading(true);
+    setUploadProgress(10);
+    setUploadError("");
+
+    if (!isSupabaseConfigured || !supabase) {
+      console.warn("Supabase env vars missing. Falling back to local data URL.");
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setUploadedImageUrl(e.target?.result as string);
+        setIsUploading(false);
+      };
+      reader.readAsDataURL(blob);
+      return;
+    }
+
+    try {
+      const fileName = `product-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+      const { data, error } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, blob, {
+          contentType: 'image/jpeg',
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        throw error;
+      }
+      
+      setUploadProgress(100);
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(fileName);
+
+      setUploadedImageUrl(publicUrl);
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setUploadError(err.message || "Failed to upload image.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const compressAndSetImage = (file: File) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -100,8 +148,8 @@ export default function AdminDashboard({
         let width = img.width;
         let height = img.height;
 
-        const MAX_WIDTH = 640;
-        const MAX_HEIGHT = 480;
+        const MAX_WIDTH = 1200; // Increased for better quality on products
+        const MAX_HEIGHT = 1200;
 
         if (width > height) {
           if (width > MAX_WIDTH) {
@@ -121,8 +169,11 @@ export default function AdminDashboard({
         const ctx = canvas.getContext("2d");
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
-          setUploadedImageBase64(dataUrl);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              uploadToSupabase(blob);
+            }
+          }, "image/jpeg", 0.85); // slightly better quality
         }
       };
       img.src = event.target?.result as string;
@@ -165,21 +216,24 @@ export default function AdminDashboard({
     setDiscountPrice(prod.discountPrice || 0);
     setPriceRange(prod.priceRange || "");
     setFeaturesText(prod.features.join(", "));
+    setIsUploading(false);
+    setUploadProgress(0);
+    setUploadError("");
     
     // Check if image is one of presets
     const isPreset = PRESET_IMAGES.some(img => img.value === prod.image);
     if (isPreset) {
       setSelectedImage(prod.image);
       setCustomImageUrl("");
-      setUploadedImageBase64("");
+      setUploadedImageUrl("");
     } else if (prod.image.startsWith("data:")) {
       setSelectedImage("upload");
-      setUploadedImageBase64(prod.image);
+      setUploadedImageUrl(prod.image);
       setCustomImageUrl("");
     } else {
       setSelectedImage("custom");
       setCustomImageUrl(prod.image);
-      setUploadedImageBase64("");
+      setUploadedImageUrl("");
     }
   };
 
@@ -193,7 +247,10 @@ export default function AdminDashboard({
     setFeaturesText("");
     setSelectedImage(PRESET_IMAGES[0].value);
     setCustomImageUrl("");
-    setUploadedImageBase64("");
+    setUploadedImageUrl("");
+    setIsUploading(false);
+    setUploadProgress(0);
+    setUploadError("");
     setFormSuccess("");
   };
 
@@ -208,7 +265,7 @@ export default function AdminDashboard({
     if (selectedImage === "custom") {
       finalImage = customImageUrl.trim() || PRESET_IMAGES[0].value;
     } else if (selectedImage === "upload") {
-      finalImage = uploadedImageBase64 || PRESET_IMAGES[0].value;
+      finalImage = uploadedImageUrl || PRESET_IMAGES[0].value;
     }
 
     const finalFeatures = featuresText.trim()
@@ -592,7 +649,7 @@ export default function AdminDashboard({
                         className={`relative border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all ${
                           isDragActive
                             ? "border-brand-500 bg-brand-50"
-                            : uploadedImageBase64
+                            : uploadedImageUrl
                             ? "border-emerald-300 bg-emerald-50/20"
                             : "border-gray-200 hover:border-brand-400 hover:bg-stone-50"
                         }`}
@@ -605,23 +662,45 @@ export default function AdminDashboard({
                           className="hidden"
                         />
 
-                        {uploadedImageBase64 ? (
-                          <div className="space-y-2">
+                        {isUploading ? (
+                          <div className="space-y-3 py-2">
+                            <div className="w-8 h-8 rounded-full border-2 border-brand-500 border-t-transparent animate-spin mx-auto" />
+                            <p className="text-[10px] font-bold text-gray-600">Uploading to Supabase... {uploadProgress}%</p>
+                            <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-brand-500 transition-all duration-300"
+                                style={{ width: `${uploadProgress}%` }}
+                              />
+                            </div>
+                          </div>
+                        ) : uploadedImageUrl ? (
+                          <div className="space-y-2 relative group">
                             <img
-                              src={uploadedImageBase64}
+                              src={uploadedImageUrl}
                               alt="Dashboard preview"
-                              className="mx-auto w-16 h-16 rounded-xl object-cover border border-gray-200 bg-white"
+                              className="mx-auto w-24 h-24 rounded-xl object-cover border border-gray-200 bg-white"
                             />
-                            <p className="text-[10px] text-emerald-800 font-bold block">Raw file compressed & loaded!</p>
-                            <label htmlFor="image-file-upload-dashboard" className="text-[9px] text-brand-600 font-bold underline cursor-pointer">Change Image</label>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setUploadedImageUrl("");
+                              }}
+                              className="absolute -top-2 right-[calc(50%-56px)] bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                            <p className="text-[10px] text-emerald-800 font-bold block">Image successfully uploaded to Supabase!</p>
+                            <label htmlFor="image-file-upload-dashboard" className="text-[9px] text-brand-600 font-bold underline cursor-pointer">Replace Image</label>
                           </div>
                         ) : (
                           <label htmlFor="image-file-upload-dashboard" className="cursor-pointer block py-2">
-                            <Plus className="w-5 h-5 mx-auto text-gray-400 mb-1" />
+                            <Upload className="w-5 h-5 mx-auto text-gray-400 mb-1" />
                             <span className="text-[10px] font-bold text-gray-700 block">Drag picture here or click to browse</span>
                           </label>
                         )}
                       </div>
+                      {uploadError && <p className="text-red-500 text-xs mt-1">{uploadError}</p>}
                     </div>
                   )}
 
@@ -662,9 +741,10 @@ export default function AdminDashboard({
                 <div className="flex gap-2.5 pt-4 border-t border-gray-100">
                   <button
                     type="submit"
-                    className="flex-1 py-3.5 bg-[#ca8a04] hover:bg-yellow-700 text-white text-xs font-bold rounded-xl scroll-smooth transition-colors cursor-pointer"
+                    disabled={isUploading}
+                    className={`flex-1 py-3.5 text-white text-xs font-bold rounded-xl scroll-smooth transition-colors cursor-pointer ${isUploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#ca8a04] hover:bg-yellow-700'}`}
                   >
-                    {editingId ? "Save Product Changes" : "Publish to Showroom catalog"}
+                    {isUploading ? "Uploading Image..." : editingId ? "Save Product Changes" : "Publish to Showroom catalog"}
                   </button>
                   {editingId && (
                     <button

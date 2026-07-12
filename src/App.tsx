@@ -8,6 +8,7 @@ import ProductCatalog from "./components/ProductCatalog";
 import TestimonialsSection from "./components/TestimonialsSection";
 import LocationShowcase from "./components/LocationShowcase";
 import TrackOrderSection from "./components/TrackOrderSection";
+import TrackOrderView from "./components/TrackOrderView";
 import InquiryCartDrawer from "./components/InquiryCartDrawer";
 import AdminDashboard from "./components/AdminDashboard";
 import FloatingWhatsApp from "./components/FloatingWhatsApp";
@@ -20,6 +21,7 @@ import PrivacyPolicy from "./components/PrivacyPolicy";
 import TermsAndConditions from "./components/TermsAndConditions";
 import ScrollToTop from "./components/ScrollToTop";
 import SEOTags from "./components/SEOTags";
+import { Toaster } from "react-hot-toast";
 import { Product, InquiryItem, Order } from "./types";
 import { PRODUCTS_DATA, BRAND_INFO } from "./data";
 import { ChefHat, MapPin, Settings, Instagram, Facebook, Mail, Phone } from "lucide-react";
@@ -146,7 +148,8 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-gray-950 font-sans selection:bg-brand-100 selection:text-brand-900 overflow-x-hidden antialiased">
       <ScrollToTop />
-      <SEOTags />
+      <SEOTags products={products} />
+      <Toaster position="top-center" />
       
       {/* Universal Sticky Header Navigation */}
       <Header
@@ -187,6 +190,8 @@ export default function App() {
             </>
           } />
           
+          <Route path="/track" element={<TrackOrderView />} />
+
           <Route path="/shop" element={
             <div className="pt-24 pb-16">
               <ProductCatalog
@@ -368,6 +373,7 @@ export default function App() {
                 <li><button onClick={() => navigate("/category/chafing-dishes")} className="hover:text-white hover:underline transition-colors cursor-pointer">Chafing Dishes</button></li>
                 <li><button onClick={() => navigate("/category/cooking-pots")} className="hover:text-white hover:underline transition-colors cursor-pointer">Cooking Pots</button></li>
                 <li><button onClick={() => navigate("/about")} className="hover:text-white hover:underline transition-colors cursor-pointer">Company Profile</button></li>
+                <li><button onClick={() => navigate("/track")} className="hover:text-white hover:underline transition-colors cursor-pointer">Track Order</button></li>
                 <li><button onClick={() => navigate("/contact")} className="hover:text-white hover:underline transition-colors cursor-pointer">Contact Us</button></li>
               </ul>
             </div>

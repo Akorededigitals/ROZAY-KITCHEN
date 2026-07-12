@@ -62,6 +62,7 @@ export default function Header({ cartCount, onOpenCart, onOpenAdmin, currentView
         { label: "Kitchen Appliances", action: () => onNavigate("category/kitchen-appliances") },
       ]
     },
+    { label: "Track Order", action: () => onNavigate("track") },
     { label: "About", action: () => onNavigate("about") },
     { label: "Contact", action: () => onNavigate("contact") },
   ];
