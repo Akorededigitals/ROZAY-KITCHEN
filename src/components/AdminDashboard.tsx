@@ -107,13 +107,21 @@ export default function AdminDashboard({
     }
 
     try {
-      const fileName = `product-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+      // Generate a SHA-256 hash of the blob to prevent duplicate uploads
+      const arrayBuffer = await blob.arrayBuffer();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
+      
+      const fileName = `product-${hashHex}.webp`;
+      
+      // Upsert: true will prevent duplicate errors but just return success if the hash is exactly the same
       const { data, error } = await supabase.storage
         .from('product-images')
         .upload(fileName, blob, {
-          contentType: 'image/jpeg',
+          contentType: 'image/webp',
           cacheControl: '3600',
-          upsert: false
+          upsert: true
         });
 
       if (error) {
@@ -136,6 +144,12 @@ export default function AdminDashboard({
   };
 
   const compressAndSetImage = (file: File) => {
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setUploadError("Invalid file type. Please upload a valid image (JPG, PNG, WebP).");
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
@@ -169,11 +183,21 @@ export default function AdminDashboard({
             if (blob) {
               uploadToSupabase(blob);
             }
-          }, "image/jpeg", 0.85); // slightly better quality
+          }, "image/webp", 0.85); // Convert to webp for better optimization
         }
       };
+      
+      img.onerror = () => {
+        setUploadError("Failed to read image file. The file might be corrupted.");
+      };
+      
       img.src = event.target?.result as string;
     };
+    
+    reader.onerror = () => {
+      setUploadError("Failed to read the file.");
+    };
+    
     reader.readAsDataURL(file);
   };
 
@@ -674,6 +698,9 @@ export default function AdminDashboard({
                             <img
                               src={uploadedImageUrl}
                               alt="Dashboard preview"
+                              loading="lazy"
+                              decoding="async"
+                              onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
                               className="mx-auto w-24 h-24 rounded-xl object-cover border border-gray-200 bg-white"
                             />
                             <button

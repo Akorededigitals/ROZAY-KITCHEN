@@ -166,7 +166,14 @@ export default function TrackOrderView() {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gray-50 rounded-md overflow-hidden flex items-center justify-center">
                           {item.image ? (
-                            <img src={getProductImageUrl(item.image)} alt={item.name} className="w-full h-full object-cover" />
+                            <img 
+                              src={getProductImageUrl(item.image)} 
+                              alt={item.name} 
+                              loading="lazy"
+                              decoding="async"
+                              onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
+                              className="w-full h-full object-cover" 
+                            />
                           ) : (
                             <Package className="w-5 h-5 text-gray-300" />
                           )}
