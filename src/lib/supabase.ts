@@ -1,23 +1,41 @@
 import { createClient } from "@supabase/supabase-js";
 import { Product, Order, ContactForm } from "../types";
 
-const urlRaw = (import.meta as any).env.VITE_SUPABASE_URL || "";
-const keyRaw = (import.meta as any).env.VITE_SUPABASE_ANON_KEY || "";
+const DEFAULT_SUPABASE_URL = "https://kzssompfuuzxauriebql.supabase.co";
+const DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6c3NvbXBmdXV6eGF1cmllYnFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzQwNjMsImV4cCI6MjA5NzY1MDA2M30.xdzUwTCKUJRv0ihDS8M4417UTtojXzu9OLRHtqP2xO0";
+
+const urlRaw = (import.meta as any).env?.VITE_SUPABASE_URL || "";
+const keyRaw = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || "";
+
+// Clean raw strings in case VITE_SUPABASE_URL was appended to VITE_SUPABASE_ANON_KEY in environment
+let cleanKey = keyRaw.split("VITE_SUPABASE_URL")[0].trim().replace(/^["']/g, "").replace(/["']$/g, "");
+let cleanUrl = urlRaw.trim().replace(/^["']/g, "").replace(/["']$/g, "");
+
+// Strip trailing /rest/v1 or trailing slashes if present
+if (cleanUrl.endsWith("/rest/v1/") || cleanUrl.endsWith("/rest/v1")) {
+  cleanUrl = cleanUrl.replace(/\/rest\/v1\/?$/, "");
+}
 
 let parsedSupabaseUrl = "";
 try {
-  // Extract strictly the origin (e.g. https://xxx.supabase.co) ignoring any paths or trailing slashes the user might have accidentally copied
-  const parsed = new URL(urlRaw.replace(/^["']/g, "").replace(/["']$/g, "").trim());
-  parsedSupabaseUrl = parsed.origin;
+  if (cleanUrl.startsWith("http")) {
+    const parsed = new URL(cleanUrl);
+    parsedSupabaseUrl = parsed.origin;
+  }
 } catch (e) {
-  parsedSupabaseUrl = urlRaw.replace(/^["']/g, "").replace(/["']$/g, "").trim();
+  parsedSupabaseUrl = cleanUrl;
 }
 
-const supabaseUrl = parsedSupabaseUrl;
-const supabaseAnonKey = keyRaw.replace(/^["']/g, "").replace(/["']$/g, "").trim();
+// Fallback to project defaults if env vars are missing or invalid
+const supabaseUrl = (parsedSupabaseUrl && parsedSupabaseUrl.startsWith("https://")) 
+  ? parsedSupabaseUrl 
+  : DEFAULT_SUPABASE_URL;
 
+const supabaseAnonKey = (cleanKey && cleanKey.length > 20) 
+  ? cleanKey 
+  : DEFAULT_SUPABASE_ANON_KEY;
 
-// Verify the environment variables are genuinely configured
+// Verify the credentials are valid
 export const isSupabaseConfigured = 
   supabaseUrl.trim() !== "" && 
   supabaseAnonKey.trim() !== "" && 
@@ -26,7 +44,7 @@ export const isSupabaseConfigured =
   !supabaseUrl.includes("PLACEHOLDER") &&
   supabaseUrl.startsWith("https://");
 
-// Initialize client if configured
+// Initialize client
 export const supabase = isSupabaseConfigured 
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null;
@@ -414,18 +432,22 @@ export async function addDbSubmission(sub: ContactForm): Promise<void> {
 }
 
 export function getProductImageUrl(imagePath: string | undefined | null): string {
-  if (!imagePath) return "";
-  if (imagePath.startsWith("http") || imagePath.startsWith("data:")) {
-    return imagePath;
+  if (!imagePath || imagePath.trim() === "") {
+    return "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800";
+  }
+  
+  const path = imagePath.trim();
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) {
+    return path;
   }
   
   // Extract filename in case it has /images/ or other prefixes
-  const parts = imagePath.split("/");
+  const parts = path.split("/");
   const filename = parts[parts.length - 1];
   
-  if (isSupabaseConfigured && supabase) {
-    const { data } = supabase.storage.from("product-images").getPublicUrl(filename);
-    return data.publicUrl;
+  if (filename) {
+    return `${supabaseUrl}/storage/v1/object/public/product-images/${filename}`;
   }
-  return imagePath; // Fallback
+  
+  return path;
 }
