@@ -85,24 +85,28 @@ export async function getDbProducts(fallbackData: Product[]): Promise<Product[]>
     if (error) throw error;
 
     if (!data || data.length === 0) {
-      // Seed Database with fallback default catalog if completely empty!
-      console.info("Supabase products table is empty. Seeding defaults...");
-      for (const item of fallbackData) {
-        await supabase.from("products").insert({
-          id: item.id,
-          name: item.name,
-          category: item.category,
-          description: item.description,
-          image: item.image,
-          features: item.features,
-          price_range: item.priceRange || "",
-          price: item.price,
-          discount_price: item.discountPrice || null,
-          stock_status: item.stockStatus || "In Stock",
-          rating: item.rating || 4.8
-        });
+      if (fallbackData && fallbackData.length > 0) {
+        // Seed Database with fallback default catalog if non-empty
+        console.info("Supabase products table is empty. Seeding defaults...");
+        for (const item of fallbackData) {
+          await supabase.from("products").insert({
+            id: item.id,
+            name: item.name,
+            category: item.category,
+            description: item.description,
+            image: item.image,
+            features: item.features,
+            price_range: item.priceRange || "",
+            price: item.price,
+            discount_price: item.discountPrice || null,
+            stock_status: item.stockStatus || "In Stock",
+            rating: item.rating || 4.8
+          });
+        }
+        return fallbackData;
       }
-      return fallbackData;
+      localStorage.removeItem("rozay_products");
+      return [];
     }
 
     // Format fields correctly for frontend (converting flat DB fields)
@@ -437,17 +441,172 @@ export function getProductImageUrl(imagePath: string | undefined | null): string
   }
   
   const path = imagePath.trim();
-  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) {
+  if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
   
-  // Extract filename in case it has /images/ or other prefixes
+  // Extract filename in case it has legacy prefixes
   const parts = path.split("/");
   const filename = parts[parts.length - 1];
   
-  if (filename) {
+  if (filename && !filename.startsWith("data:")) {
     return `${supabaseUrl}/storage/v1/object/public/product-images/${filename}`;
   }
   
-  return path;
+  return "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800";
+}
+
+/**
+ * Compress image before uploading to Supabase Storage
+ */
+export async function compressImage(file: File, maxDimension = 1200, quality = 0.85): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxDimension) {
+          height = Math.round(height * (maxDimension / width));
+          width = maxDimension;
+        }
+      } else {
+        if (height > maxDimension) {
+          width = Math.round(width * (maxDimension / height));
+          height = maxDimension;
+        }
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Failed to get canvas context"));
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Convert to webp
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error("Image compression failed"));
+          }
+        },
+        "image/webp",
+        quality
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Failed to load image for compression"));
+    };
+
+    img.src = objectUrl;
+  });
+}
+
+/**
+ * Direct Supabase Storage Upload for Product Images
+ */
+export async function uploadProductImageToSupabase(
+  file: File,
+  onProgress?: (percent: number) => void
+): Promise<string> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error("Supabase is not configured. Please check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.");
+  }
+
+  // 1. Validation
+  const validTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
+  if (!validTypes.includes(file.type.toLowerCase())) {
+    throw new Error("Invalid image format. Only JPG, JPEG, PNG, and WebP images are allowed.");
+  }
+
+  onProgress?.(15);
+
+  // 2. Compress image on client side
+  let imageBlob: Blob;
+  try {
+    imageBlob = await compressImage(file, 1200, 0.85);
+  } catch (err) {
+    console.warn("Client image compression fallback to raw file blob", err);
+    imageBlob = file;
+  }
+
+  onProgress?.(45);
+
+  // 3. Unique filename with SHA256 / hash + timestamp to prevent collisions
+  const arrayBuffer = await imageBlob.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest("SHA-256", arrayBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("").substring(0, 12);
+  const uniqueId = Math.random().toString(36).substring(2, 7);
+  const fileName = `product-${Date.now()}-${hashHex}-${uniqueId}.webp`;
+
+  onProgress?.(65);
+
+  // 4. Retry loop for upload
+  let lastError: any = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const { data, error } = await supabase.storage
+        .from("product-images")
+        .upload(fileName, imageBlob, {
+          contentType: "image/webp",
+          cacheControl: "36000",
+          upsert: true
+        });
+
+      if (error) throw error;
+
+      onProgress?.(90);
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from("product-images")
+        .getPublicUrl(fileName);
+
+      onProgress?.(100);
+
+      return publicUrlData.publicUrl;
+    } catch (err) {
+      lastError = err;
+      console.warn(`Upload attempt ${attempt} failed:`, err);
+      if (attempt < 3) {
+        await new Promise((res) => setTimeout(res, 1000 * attempt));
+      }
+    }
+  }
+
+  throw new Error(lastError?.message || "Failed to upload image to Supabase Storage after multiple attempts.");
+}
+
+/**
+ * Remove an image file from Supabase Storage
+ */
+export async function deleteStorageImage(imageUrl: string): Promise<void> {
+  if (!isSupabaseConfigured || !supabase || !imageUrl) return;
+  if (!imageUrl.includes("product-images")) return;
+
+  try {
+    const parts = imageUrl.split("/product-images/");
+    if (parts.length > 1) {
+      const fileName = parts[1].split("?")[0];
+      if (fileName) {
+        await supabase.storage.from("product-images").remove([fileName]);
+      }
+    }
+  } catch (err) {
+    console.error("Failed to delete storage file", err);
+  }
 }

@@ -7,7 +7,7 @@ import {
   DollarSign, TrendingUp, Inbox, Calendar, Check, X, Tag, ShoppingBag, Database, WifiOff
 } from "lucide-react";
 import { CATEGORIES } from "../data";
-import { getDbOrders, getDbSubmissions, isSupabaseConfigured, supabase, getProductImageUrl } from "../lib/supabase";
+import { getDbOrders, getDbSubmissions, isSupabaseConfigured, supabase, getProductImageUrl, uploadProductImageToSupabase } from "../lib/supabase";
 
 interface AdminDashboardProps {
   products: Product[];
@@ -17,12 +17,6 @@ interface AdminDashboardProps {
   onResetToDefault: () => void;
   onClose: () => void;
 }
-
-const PRESET_IMAGES = [
-  { label: "Chafing Dishes (Gold/Steel)", value: "https://picsum.photos/seed/chafingdish/800/800" },
-  { label: "Elite Cookware Pot (Rose-gold)", value: "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800" },
-  { label: "Luxury Kitchen Hero Banner", value: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Balogun_Market%2C_Lagos_Island.jpg/1280px-Balogun_Market%2C_Lagos_Island.jpg" }
-];
 
 export default function AdminDashboard({
   products,
@@ -52,7 +46,6 @@ export default function AdminDashboard({
   const [discountPrice, setDiscountPrice] = useState<number>(0);
   const [priceRange, setPriceRange] = useState(""); // Kept for backward compatibility display
   const [featuresText, setFeaturesText] = useState("");
-  const [selectedImage, setSelectedImage] = useState(PRESET_IMAGES[0].value);
   const [customImageUrl, setCustomImageUrl] = useState("");
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
@@ -94,111 +87,29 @@ export default function AdminDashboard({
     }
   };
 
-  const uploadToSupabase = async (blob: Blob) => {
+  const handleFileUpload = async (file: File) => {
+    const validTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
+    if (!validTypes.includes(file.type.toLowerCase())) {
+      setUploadError("Invalid file format. Please select a JPG, JPEG, PNG, or WebP image.");
+      return;
+    }
+
     setIsUploading(true);
     setUploadProgress(10);
     setUploadError("");
 
-    if (!isSupabaseConfigured || !supabase) {
-      console.warn("Supabase env vars missing. Cannot upload image.");
-      setUploadError("Supabase is not configured. Please connect to Supabase to upload images.");
-      setIsUploading(false);
-      return;
-    }
-
     try {
-      // Generate a SHA-256 hash of the blob to prevent duplicate uploads
-      const arrayBuffer = await blob.arrayBuffer();
-      const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
-      
-      const fileName = `product-${hashHex}.webp`;
-      
-      // Upsert: true will prevent duplicate errors but just return success if the hash is exactly the same
-      const { data, error } = await supabase.storage
-        .from('product-images')
-        .upload(fileName, blob, {
-          contentType: 'image/webp',
-          cacheControl: '3600',
-          upsert: true
-        });
-
-      if (error) {
-        throw error;
-      }
-      
-      setUploadProgress(100);
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(fileName);
-
+      const publicUrl = await uploadProductImageToSupabase(file, (percent) => {
+        setUploadProgress(percent);
+      });
       setUploadedImageUrl(publicUrl);
+      setCustomImageUrl("");
     } catch (err: any) {
       console.error("Upload error:", err);
-      setUploadError(err.message || "Failed to upload image.");
+      setUploadError(err.message || "Failed to upload image to Supabase Storage.");
     } finally {
       setIsUploading(false);
     }
-  };
-
-  const compressAndSetImage = (file: File) => {
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      setUploadError("Invalid file type. Please upload a valid image (JPG, PNG, WebP).");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let width = img.width;
-        let height = img.height;
-
-        const MAX_WIDTH = 1200; // Increased for better quality on products
-        const MAX_HEIGHT = 1200;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          canvas.toBlob((blob) => {
-            if (blob) {
-              uploadToSupabase(blob);
-            }
-          }, "image/webp", 0.85); // Convert to webp for better optimization
-        }
-      };
-      
-      img.onerror = () => {
-        setUploadError("Failed to read image file. The file might be corrupted.");
-      };
-      
-      img.src = event.target?.result as string;
-    };
-    
-    reader.onerror = () => {
-      setUploadError("Failed to read the file.");
-    };
-    
-    reader.readAsDataURL(file);
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -217,13 +128,13 @@ export default function AdminDashboard({
     setIsDragActive(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      compressAndSetImage(e.dataTransfer.files[0]);
+      handleFileUpload(e.dataTransfer.files[0]);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      compressAndSetImage(e.target.files[0]);
+      handleFileUpload(e.target.files[0]);
     }
   };
 
@@ -239,22 +150,8 @@ export default function AdminDashboard({
     setIsUploading(false);
     setUploadProgress(0);
     setUploadError("");
-    
-    // Check if image is one of presets
-    const isPreset = PRESET_IMAGES.some(img => img.value === prod.image);
-    if (isPreset) {
-      setSelectedImage(prod.image);
-      setCustomImageUrl("");
-      setUploadedImageUrl("");
-    } else if (prod.image.startsWith("data:") || prod.image.includes("supabase.co") || prod.image.includes("product-images")) {
-      setSelectedImage("upload");
-      setUploadedImageUrl(prod.image);
-      setCustomImageUrl("");
-    } else {
-      setSelectedImage("custom");
-      setCustomImageUrl(prod.image);
-      setUploadedImageUrl("");
-    }
+    setUploadedImageUrl(prod.image || "");
+    setCustomImageUrl("");
   };
 
   const handleClearForm = () => {
@@ -265,7 +162,6 @@ export default function AdminDashboard({
     setDiscountPrice(0);
     setPriceRange("");
     setFeaturesText("");
-    setSelectedImage(PRESET_IMAGES[0].value);
     setCustomImageUrl("");
     setUploadedImageUrl("");
     setIsUploading(false);
@@ -281,18 +177,12 @@ export default function AdminDashboard({
       return;
     }
 
-    let finalImage = selectedImage;
-    if (selectedImage === "custom") {
-      finalImage = customImageUrl.trim() || PRESET_IMAGES[0].value;
-    } else if (selectedImage === "upload") {
-      finalImage = uploadedImageUrl || PRESET_IMAGES[0].value;
-    }
+    const finalImage = uploadedImageUrl.trim() || customImageUrl.trim();
 
     const finalFeatures = featuresText.trim()
       ? featuresText.split(",").map(f => f.trim()).filter(f => f.length > 0)
       : ["Premium quality", "Imported kitchenware"];
 
-    // Auto-generate display range if empty
     const displayPriceRange = priceRange.trim() || formatNaira(price);
 
     if (editingId) {
@@ -309,7 +199,7 @@ export default function AdminDashboard({
         rating: 4.8,
         stockStatus: "In Stock"
       });
-      setFormSuccess("Product updated successfully in local storage!");
+      setFormSuccess("Product updated successfully in database!");
     } else {
       onAddProduct({
         name: name.trim(),
@@ -644,64 +534,55 @@ export default function AdminDashboard({
                   </div>
                 </div>
 
-                {/* Picture selects */}
+                {/* Direct Supabase Storage Image Upload */}
                 <div>
-                  <label className="text-[10px] uppercase font-mono font-bold text-gray-500 block mb-1">Appliance Product Image Showcase</label>
-                  <select
-                    value={selectedImage}
-                    onChange={(e) => setSelectedImage(e.target.value)}
-                    className="w-full text-xs px-3 py-3 bg-stone-50 border border-gray-200 rounded-xl focus:outline-none focus:bg-white text-gray-900 font-semibold mb-3"
-                  >
-                    <option value="upload">📷 -- Upload custom image from laptop (Compressed!) --</option>
-                    {PRESET_IMAGES.map(img => (
-                      <option key={img.value} value={img.value}>{img.label}</option>
-                    ))}
-                    <option value="custom">🔗 -- Enter custom image web URL --</option>
-                  </select>
+                  <label className="text-[10px] uppercase font-mono font-bold text-gray-500 block mb-1">
+                    Product Image (Direct Supabase Storage Upload)
+                  </label>
+                  <div className="space-y-3 mb-3">
+                    <div
+                      onDragEnter={handleDrag}
+                      onDragOver={handleDrag}
+                      onDragLeave={handleDrag}
+                      onDrop={handleDrop}
+                      className={`relative border-2 border-dashed rounded-2xl p-5 text-center cursor-pointer transition-all ${
+                        isDragActive
+                          ? "border-brand-500 bg-brand-50"
+                          : uploadedImageUrl
+                          ? "border-emerald-400 bg-emerald-50/40"
+                          : "border-gray-200 hover:border-brand-400 hover:bg-stone-50"
+                      }`}
+                    >
+                      <input
+                        type="file"
+                        id="image-file-upload-dashboard"
+                        accept="image/jpeg,image/png,image/jpg,image/webp"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
 
-                  {selectedImage === "upload" && (
-                    <div className="space-y-3 mb-3">
-                      <div
-                        onDragEnter={handleDrag}
-                        onDragOver={handleDrag}
-                        onDragLeave={handleDrag}
-                        onDrop={handleDrop}
-                        className={`relative border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all ${
-                          isDragActive
-                            ? "border-brand-500 bg-brand-50"
-                            : uploadedImageUrl
-                            ? "border-emerald-300 bg-emerald-50/20"
-                            : "border-gray-200 hover:border-brand-400 hover:bg-stone-50"
-                        }`}
-                      >
-                        <input
-                          type="file"
-                          id="image-file-upload-dashboard"
-                          accept="image/*"
-                          onChange={handleFileChange}
-                          className="hidden"
-                        />
-
-                        {isUploading ? (
-                          <div className="space-y-3 py-2">
-                            <div className="w-8 h-8 rounded-full border-2 border-brand-500 border-t-transparent animate-spin mx-auto" />
-                            <p className="text-[10px] font-bold text-gray-600">Uploading to Supabase... {uploadProgress}%</p>
-                            <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-brand-500 transition-all duration-300"
-                                style={{ width: `${uploadProgress}%` }}
-                              />
-                            </div>
+                      {isUploading ? (
+                        <div className="space-y-3 py-3">
+                          <div className="w-9 h-9 rounded-full border-3 border-brand-500 border-t-transparent animate-spin mx-auto" />
+                          <p className="text-xs font-bold text-gray-700">Uploading & Compressing to Supabase Storage... {uploadProgress}%</p>
+                          <div className="w-full max-w-xs mx-auto h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-brand-500 transition-all duration-300"
+                              style={{ width: `${uploadProgress}%` }}
+                            />
                           </div>
-                        ) : uploadedImageUrl ? (
-                          <div className="space-y-2 relative group">
+                        </div>
+                      ) : uploadedImageUrl ? (
+                        <div className="space-y-2 relative group py-1">
+                          <div className="relative inline-block">
                             <img
                               src={uploadedImageUrl}
-                              alt="Dashboard preview"
+                              alt="Product preview"
                               loading="lazy"
                               decoding="async"
+                              referrerPolicy="no-referrer"
                               onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
-                              className="mx-auto w-24 h-24 rounded-xl object-cover border border-gray-200 bg-white"
+                              className="mx-auto w-28 h-28 rounded-xl object-cover border border-gray-200 bg-white shadow-sm"
                             />
                             <button
                               type="button"
@@ -709,33 +590,42 @@ export default function AdminDashboard({
                                 e.stopPropagation();
                                 setUploadedImageUrl("");
                               }}
-                              className="absolute -top-2 right-[calc(50%-56px)] bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow hover:bg-red-600 transition-colors"
+                              title="Remove image"
                             >
-                              <X className="w-3 h-3" />
+                              <X className="w-3.5 h-3.5" />
                             </button>
-                            <p className="text-[10px] text-emerald-800 font-bold block">Image successfully uploaded to Supabase!</p>
-                            <label htmlFor="image-file-upload-dashboard" className="text-[9px] text-brand-600 font-bold underline cursor-pointer">Replace Image</label>
                           </div>
-                        ) : (
-                          <label htmlFor="image-file-upload-dashboard" className="cursor-pointer block py-2">
-                            <Upload className="w-5 h-5 mx-auto text-gray-400 mb-1" />
-                            <span className="text-[10px] font-bold text-gray-700 block">Drag picture here or click to browse</span>
+                          <p className="text-xs text-emerald-700 font-bold block">✓ Image uploaded to Supabase Storage!</p>
+                          <label htmlFor="image-file-upload-dashboard" className="text-xs text-brand-600 font-bold underline cursor-pointer hover:text-brand-700 block">
+                            Click or drag to replace image
                           </label>
-                        )}
-                      </div>
-                      {uploadError && <p className="text-red-500 text-xs mt-1">{uploadError}</p>}
+                        </div>
+                      ) : (
+                        <label htmlFor="image-file-upload-dashboard" className="cursor-pointer block py-3">
+                          <Upload className="w-6 h-6 mx-auto text-brand-500 mb-1.5" />
+                          <span className="text-xs font-bold text-gray-800 block mb-0.5">Drag & drop product picture here</span>
+                          <span className="text-[11px] text-gray-500 block">or click to browse from device (JPG, PNG, WebP)</span>
+                        </label>
+                      )}
                     </div>
-                  )}
+                    {uploadError && <p className="text-red-500 text-xs mt-1 font-medium bg-red-50 p-2 rounded-lg border border-red-100">{uploadError}</p>}
+                  </div>
 
-                  {selectedImage === "custom" && (
+                  {/* Optional HTTPS Image URL fallback */}
+                  <details className="text-xs text-gray-500">
+                    <summary className="cursor-pointer hover:text-gray-700 text-[11px] font-mono">Or paste image web address (HTTPS)</summary>
                     <input
                       type="url"
                       value={customImageUrl}
-                      onChange={(e) => setCustomImageUrl(e.target.value)}
-                      placeholder="https://images.unsplash.com/your-picture-address"
-                      className="w-full text-xs px-3.5 py-2.5 rounded-lg bg-stone-50 border border-gray-200 focus:outline-none focus:bg-white text-gray-900 mb-2"
+                      onChange={(e) => {
+                        setCustomImageUrl(e.target.value);
+                        if (e.target.value.trim()) setUploadedImageUrl("");
+                      }}
+                      placeholder="https://YOUR_PROJECT.supabase.co/storage/v1/object/public/product-images/..."
+                      className="w-full text-xs px-3.5 py-2.5 rounded-lg bg-stone-50 border border-gray-200 focus:outline-none focus:bg-white text-gray-900 mt-2"
                     />
-                  )}
+                  </details>
                 </div>
 
                 <div>
@@ -793,8 +683,9 @@ export default function AdminDashboard({
                     <img
                       src={getProductImageUrl(p.image)}
                       alt={p.name}
+                      referrerPolicy="no-referrer"
                       loading="lazy"
-                            decoding="async"
+                      decoding="async"
                           onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
                       
                       

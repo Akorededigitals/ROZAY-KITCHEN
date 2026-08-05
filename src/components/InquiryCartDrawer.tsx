@@ -168,14 +168,10 @@ export default function InquiryCartDrawer({
                         <img
                           src={getProductImageUrl(item.product.image)}
                           alt={item.product.name}
-                            loading="lazy"
-                            decoding="async"
+                          referrerPolicy="no-referrer"
+                          loading="lazy"
+                          decoding="async"
                           onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
-                            
-                            
-                          
-                          
-                          
                           className="w-14 h-14 rounded-lg object-cover bg-stone-100 shrink-0 border border-gray-100"
                         />
                         <div className="flex-1 min-w-0">

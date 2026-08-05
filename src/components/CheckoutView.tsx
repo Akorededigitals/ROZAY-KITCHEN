@@ -370,14 +370,10 @@ This summary is prepared for Rozay Kitchen Fulfillment Center Lagos State. Pleas
                           <img
                             src={getProductImageUrl(item.product.image)}
                             alt={item.product.name}
+                            referrerPolicy="no-referrer"
                             loading="lazy"
                             decoding="async"
-                          onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
-                            
-                            
-                            
-                            
-                            
+                            onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
                             className="w-full h-full object-cover"
                           />
                         </div>
