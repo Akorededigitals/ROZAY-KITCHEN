@@ -440,19 +440,39 @@ export function getProductImageUrl(imagePath: string | undefined | null): string
     return "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800";
   }
   
-  const path = imagePath.trim();
-  if (path.startsWith("http://") || path.startsWith("https://")) {
+  let path = imagePath.trim();
+
+  // Upgrade http:// to https:// to prevent mixed-content blocking on live SSL hosts like Truehost
+  if (path.startsWith("http://")) {
+    path = path.replace("http://", "https://");
+  }
+
+  // If already a full HTTPS or data URL, return directly
+  if (path.startsWith("https://") || path.startsWith("data:")) {
     return path;
   }
-  
-  // Extract filename in case it has legacy prefixes
+
+  // Handle local static public assets (e.g. /images/..., images/..., ./images/..., assets/...)
+  if (
+    path.startsWith("/") ||
+    path.startsWith("./") ||
+    path.startsWith("images/") ||
+    path.startsWith("public/") ||
+    path.startsWith("assets/")
+  ) {
+    const cleanPath = path.replace(/^\.\//, "").replace(/^public\//, "");
+    return cleanPath.startsWith("/") ? cleanPath : `/${cleanPath}`;
+  }
+
+  // Extract filename in case of Supabase Storage bucket files or legacy paths
   const parts = path.split("/");
   const filename = parts[parts.length - 1];
-  
-  if (filename && !filename.startsWith("data:")) {
-    return `${supabaseUrl}/storage/v1/object/public/product-images/${filename}`;
+
+  if (filename) {
+    const cleanBaseUrl = supabaseUrl.replace(/\/$/, "");
+    return `${cleanBaseUrl}/storage/v1/object/public/product-images/${filename}`;
   }
-  
+
   return "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800";
 }
 
