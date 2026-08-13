@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { MapPin, Clock, Instagram, Send, Mail, Phone, ShoppingBag, ShieldCheck, HeartHandshake, CheckCircle } from "lucide-react";
+import { MapPin, Clock, Instagram, Send, Mail, Phone, ShoppingBag, ShieldCheck, HeartHandshake, CheckCircle, Bus } from "lucide-react";
 import { BRAND_INFO, CHOOSE_US_POINTS, PRODUCTS_DATA } from "../data";
 import { ContactForm } from "../types";
 import { addDbSubmission } from "../lib/supabase";
@@ -189,8 +189,47 @@ Sent via Rozay Kitchen Lagos Web Platform`;
 
             </div>
 
+            {/* Idumota & Eko Market Photo Feature */}
+            <div className="bg-stone-50 rounded-3xl overflow-hidden shadow-sm border border-gray-150">
+              <div className="relative h-56 sm:h-64 w-full bg-stone-900 group">
+                <img
+                  src="/images/lagos_island_eko_market.jpg"
+                  alt="Lagos Island Eko Market with yellow Danfo buses"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  loading="lazy"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (!target.src.endsWith("/images/eko_market_lagos.jpg")) {
+                      target.src = "/images/eko_market_lagos.jpg";
+                    } else if (!target.src.endsWith("/images/idumota_lagos_market.jpg")) {
+                      target.src = "/images/idumota_lagos_market.jpg";
+                    } else {
+                      target.src = "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80";
+                    }
+                  }}
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-950/40 to-transparent p-5 flex flex-col justify-end text-white">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="px-2 py-0.5 rounded bg-amber-500 text-stone-950 font-mono text-[9px] font-extrabold uppercase tracking-wider w-fit">
+                      Eko Market — Lagos Island
+                    </span>
+                    <span className="text-[10px] text-amber-300 font-semibold flex items-center gap-1">
+                      <Bus className="w-3 h-3 text-amber-400" /> Yellow Danfo Buses Route
+                    </span>
+                  </div>
+                  <h4 className="font-extrabold text-base text-white leading-tight">
+                    Lagos Island Eko Market & Gorodom Street View
+                  </h4>
+                  <p className="text-xs text-stone-300 font-medium mt-0.5">
+                    Block N Shop 89, 90, 91, 92 Gorodom, Idumota, Lagos Island
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Interactive Google Map */}
-            <div className="bg-stone-50 rounded-3xl p-4 shadow-xl border border-gray-150 min-h-[400px] flex flex-col">
+            <div className="bg-stone-50 rounded-3xl p-4 shadow-xl border border-gray-150 min-h-[350px] flex flex-col">
               <h4 className="font-display font-bold text-base text-gray-900 mb-2 flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-brand-500 animate-ping" />
                 Find Us Here
@@ -371,12 +410,30 @@ Sent via Rozay Kitchen Lagos Web Platform`;
                 />
               </div>
 
-              <button
-                type="submit"
-                className="w-full sm:w-auto px-8 py-3.5 bg-stone-900 hover:bg-stone-950 text-white font-bold text-sm rounded-xl transition-colors tracking-wide cursor-pointer flex items-center justify-center gap-2"
-              >
-                Submit Form
-              </button>
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={isSending}
+                  className="w-full sm:w-auto px-8 py-3.5 bg-stone-900 hover:bg-stone-950 text-white font-bold text-sm rounded-xl transition-colors tracking-wide cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>Submit Online Message</span>
+                </button>
+
+                <a
+                  href={`https://api.whatsapp.com/send?phone=2348123221174&text=${encodeURIComponent(
+                    `Hello Rozay Kitchen Sales Team! 👋\n\nI have an inquiry from your contact page:\n\nName: ${formData.name || "Customer"}\nMessage: ${formData.message || "I would like to inquire about cookware products and pricing."}`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition-colors tracking-wide cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                >
+                  <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.261 2.266 3.504 5.277 3.505 8.483-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.5-5.739-1.453L0 24zm6.59-4.846c1.6.95 3.19 1.449 4.825 1.451 5.436 0 9.859-4.417 9.863-9.848.002-2.63-1.023-5.101-2.885-6.963C16.58 1.93 14.113.87 11.487.87 6.05 1.87 1.628 6.287 1.624 11.717c-.001 1.693.45 3.345 1.306 4.787L1.925 21.05l4.722-1.238zm11.373-7.513c-.3-.15-1.771-.875-2.046-.975-.276-.1-.476-.15-.675.15-.199.3-.773.975-.948 1.176-.176.2-.351.225-.651.075-.3-.15-1.267-.467-2.413-1.49-1.202-1.07-1.41-1.611-1.558-1.91-.148-.3-.016-.462.133-.612.135-.135.3-.349.45-.524.15-.175.2-.299.3-.5.1-.2.05-.375-.025-.525-.075-.15-.675-1.625-.925-2.225-.244-.589-.493-.51-.675-.52-.175-.01-.375-.01-.575-.01-.2 0-.525.075-.8 375-.275.3-1.05 1.025-1.05 2.5 0 1.475 1.075 2.9 1.225 3.1.15.2 2.115 3.23 5.125 4.532.715.31 1.273.495 1.708.634.718.228 1.371.196 1.888.118.575-.088 1.771-.725 2.021-1.425.25-.7.25-1.3 1.75-.425zm0 0" />
+                  </svg>
+                  <span>Transfer to Agent on WhatsApp</span>
+                </a>
+              </div>
 
             </form>
           </div>

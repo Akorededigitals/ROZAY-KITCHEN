@@ -59,22 +59,24 @@ export default function AboutSection() {
               </div>
             </div>
 
-            {/* CEO Profile */}
-            <div className="mt-8 pt-6 border-t border-gray-100 flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full overflow-hidden bg-stone-200 border-2 border-brand-500 shrink-0">
-                <img 
-                  src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=200&h=200" 
-                  alt="Alaekwe Onyebuchi" 
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                  decoding="async"
-                          onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
-                  
-                />
-              </div>
-              <div>
-                <h4 className="font-display font-bold text-lg text-gray-950">Alaekwe Onyebuchi</h4>
-                <p className="text-sm font-mono text-brand-600 font-semibold tracking-wide">CEO ROZAY KITCHEN</p>
+            {/* CEO Profile Section */}
+            <div className="mt-8 p-5 bg-gradient-to-r from-amber-50/60 via-stone-50 to-white rounded-2xl border border-amber-200/80 shadow-sm">
+              <div className="flex-1 text-center sm:text-left">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold uppercase tracking-wider mb-1.5">
+                  <Award className="w-3 h-3 text-amber-600" />
+                  <span>FOUNDER &amp; CEO</span>
+                </div>
+                
+                <h4 className="font-display font-extrabold text-xl text-gray-950 tracking-tight">
+                  Alaekwe Onyebuchi
+                </h4>
+                <p className="text-xs font-mono text-brand-700 font-semibold tracking-wide mb-2">
+                  CEO ROZAY KITCHEN — Lagos Island
+                </p>
+
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Under Alaekwe Onyebuchi's leadership, Rozay Kitchen has grown into Lagos Island's premier wholesale and retail destination for luxury chafing dishes, cookware sets, and catering equipment.
+                </p>
               </div>
             </div>
           </div>

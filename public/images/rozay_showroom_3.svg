@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgRoom" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f1f5f9"/>
+      <stop offset="100%" stop-color="#cbd5e1"/>
+    </linearGradient>
+    <linearGradient id="redCooler" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="50%" stop-color="#dc2626"/>
+      <stop offset="100%" stop-color="#991b1b"/>
+    </linearGradient>
+    <linearGradient id="goldAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="100%" stop-color="#ca8a04"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1000" height="1200" fill="url(#bgRoom)"/>
+
+  <!-- Stacked 48L Red Catering Coolers in background -->
+  <g transform="translate(520, 480)">
+    <!-- Bottom Cooler 1 -->
+    <rect x="-80" y="100" width="160" height="120" rx="16" fill="url(#redCooler)"/>
+    <text x="0" y="170" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="22" fill="#ffffff">48L</text>
+    
+    <!-- Middle Cooler 2 -->
+    <rect x="-75" y="-10" width="150" height="110" rx="16" fill="url(#redCooler)"/>
+    <text x="0" y="55" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="20" fill="#ffffff">48L</text>
+
+    <!-- Top Cooler 3 -->
+    <rect x="-70" y="-110" width="140" height="100" rx="16" fill="url(#redCooler)"/>
+    <text x="0" y="-50" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="18" fill="#ffffff">48L</text>
+  </g>
+
+  <!-- Spherical Black & Gold Chafing Warmers -->
+  <g transform="translate(620, 620)">
+    <circle cx="0" cy="0" r="75" fill="#09090b"/>
+    <circle cx="0" cy="-25" r="75" fill="url(#goldAccent)"/>
+    <circle cx="0" cy="-90" r="16" fill="#09090b"/>
+  </g>
+
+  <!-- Premium Pots & Cookware Sets Display -->
+  <g transform="translate(260, 750)">
+    <!-- Granite Cookware Pots -->
+    <rect x="-140" y="-60" width="280" height="120" rx="14" fill="#1c1917"/>
+    <ellipse cx="0" cy="-60" rx="140" ry="30" fill="#d4af37"/>
+    <!-- Glass Lid Handle -->
+    <circle cx="0" cy="-85" r="14" fill="#ffffff" stroke="#d4af37" stroke-width="4"/>
+  </g>
+
+  <!-- Overlay Tag -->
+  <g transform="translate(500, 1120)">
+    <rect x="-320" y="-25" width="640" height="40" rx="20" fill="#0f172a"/>
+    <text x="0" y="0" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-weight="800" font-size="14" fill="#ef4444">
+      📦 CATERING COOLERS, SPHERICAL WARMERS &amp; COOKWARE SETS
+    </text>
+  </g>
+</svg>
