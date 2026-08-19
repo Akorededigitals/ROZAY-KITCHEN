@@ -437,7 +437,7 @@ export async function addDbSubmission(sub: ContactForm): Promise<void> {
 
 export function getProductImageUrl(imagePath: string | undefined | null): string {
   if (!imagePath || imagePath.trim() === "") {
-    return "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800";
+    return "";
   }
   
   let path = imagePath.trim();
@@ -473,7 +473,7 @@ export function getProductImageUrl(imagePath: string | undefined | null): string
     return `${cleanBaseUrl}/storage/v1/object/public/product-images/${filename}`;
   }
 
-  return "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800";
+  return "";
 }
 
 /**

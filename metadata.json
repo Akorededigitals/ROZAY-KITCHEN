@@ -1,6 +1,6 @@
 {
   "name": "Rozay Kitchen",
-  "description": "Premium kitchen appliances, cookware, and catering equipment in Lagos, Nigeria.",
+  "description": "Premium kitchen appliances, luxury chafing dishes, cookware sets, and catering equipment in Lagos, Nigeria with online showroom ordering and admin management.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -1,10 +1,45 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { MapPin, Clock, Instagram, Send, Mail, Phone, ShoppingBag, ShieldCheck, HeartHandshake, CheckCircle, Bus } from "lucide-react";
+import { 
+  MapPin, Clock, Instagram, Send, Mail, Phone, ShoppingBag, 
+  ShieldCheck, HeartHandshake, CheckCircle, Store, ChevronLeft, 
+  ChevronRight, Maximize2, X, Sparkles, Eye, Play, Pause
+} from "lucide-react";
 import { BRAND_INFO, CHOOSE_US_POINTS, PRODUCTS_DATA } from "../data";
 import { ContactForm } from "../types";
 import { addDbSubmission } from "../lib/supabase";
+import SafeImage from "./SafeImage";
 import toast from "react-hot-toast";
+
+const STOREFRONT_PHOTOS = [
+  {
+    id: "sf-1",
+    src: "/images/storefront/storefront_1.jpg",
+    fallbackSrc: "https://i.ibb.co/P04z6f5/Whats-App-Image-2026-08-13-at-16-11-21-2.jpg",
+    title: "Ebute-Ero Storefront & Entrance",
+    badge: "Main Showroom",
+    location: "Block N, New Pepsi Building, Ebute-ero Market, Idumota",
+    description: "Our prominent wholesale hub welcoming caterers, restaurant owners, wedding planners, and retail buyers daily."
+  },
+  {
+    id: "sf-2",
+    src: "/images/storefront/storefront_2.jpg",
+    fallbackSrc: "https://i.ibb.co/cXTMWBB2/Whats-App-Image-2026-08-13-at-16-11-21-1.jpg",
+    title: "Luxury Chafing Dishes & Warmers Display",
+    badge: "Buffet & Banquet Hub",
+    location: "Aisle 1 • Luxury Chafing Section",
+    description: "Extensive selection of hydraulic glass-top, gold-plated, and stainless steel roll-top buffet warmers on display."
+  },
+  {
+    id: "sf-3",
+    src: "/images/storefront/storefront_3.jpg",
+    fallbackSrc: "https://i.ibb.co/JwXp7rSX/Whats-App-Image-2026-08-13-at-16-11-21.jpg",
+    title: "Commercial Pots, Coolers & Cookware Aisles",
+    badge: "Wholesale Inventory",
+    location: "Aisle 2 • Commercial Kitchenware",
+    description: "Stacked inventory of heavy-duty granite cooking pots, industrial cooler boxes, chafing fuels, and catering appliances."
+  }
+];
 
 export default function LocationShowcase() {
   const [formData, setFormData] = useState<ContactForm>({
@@ -19,6 +54,81 @@ export default function LocationShowcase() {
   const [submitted, setSubmitted] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [mailtoUrl, setMailtoUrl] = useState("");
+  const [selectedPhoto, setSelectedPhoto] = useState<typeof STOREFRONT_PHOTOS[0] | null>(null);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState<boolean>(true);
+  const [isHovered, setIsHovered] = useState<boolean>(false);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollToIndex = useCallback((index: number) => {
+    if (!scrollContainerRef.current) return;
+    const container = scrollContainerRef.current;
+    const cards = container.querySelectorAll<HTMLElement>("[data-storefront-card]");
+    if (cards[index]) {
+      cards[index].scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center"
+      });
+      setCurrentIndex(index);
+    }
+  }, []);
+
+  const handlePrev = useCallback(() => {
+    const nextIdx = (currentIndex - 1 + STOREFRONT_PHOTOS.length) % STOREFRONT_PHOTOS.length;
+    scrollToIndex(nextIdx);
+  }, [currentIndex, scrollToIndex]);
+
+  const handleNext = useCallback(() => {
+    const nextIdx = (currentIndex + 1) % STOREFRONT_PHOTOS.length;
+    scrollToIndex(nextIdx);
+  }, [currentIndex, scrollToIndex]);
+
+  // Auto-scroll effect: advances every 3.8 seconds when active & not hovered
+  useEffect(() => {
+    if (!isAutoPlaying || isHovered || selectedPhoto !== null) return;
+    
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => {
+        const nextIdx = (prev + 1) % STOREFRONT_PHOTOS.length;
+        if (scrollContainerRef.current) {
+          const cards = scrollContainerRef.current.querySelectorAll<HTMLElement>("[data-storefront-card]");
+          if (cards[nextIdx]) {
+            cards[nextIdx].scrollIntoView({
+              behavior: "smooth",
+              block: "nearest",
+              inline: "center"
+            });
+          }
+        }
+        return nextIdx;
+      });
+    }, 3800);
+
+    return () => clearInterval(interval);
+  }, [isAutoPlaying, isHovered, selectedPhoto]);
+
+  // Track active slide on user drag/touch scroll
+  const handleContainerScroll = useCallback(() => {
+    if (!scrollContainerRef.current) return;
+    const container = scrollContainerRef.current;
+    const cards = container.querySelectorAll<HTMLElement>("[data-storefront-card]");
+    const containerCenter = container.scrollLeft + container.clientWidth / 2;
+    let closestIndex = 0;
+    let minDistance = Infinity;
+
+    cards.forEach((card, idx) => {
+      const cardCenter = card.offsetLeft + card.clientWidth / 2;
+      const dist = Math.abs(containerCenter - cardCenter);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestIndex = idx;
+      }
+    });
+
+    setCurrentIndex(closestIndex);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,9 +219,9 @@ Sent via Rozay Kitchen Lagos Web Platform`;
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header Grid */}
-        <div className="text-center max-w-2xl mx-auto mb-16">
+        <div className="text-center max-w-2xl mx-auto mb-12 lg:mb-16">
           <span className="text-xs font-mono font-bold uppercase tracking-wider text-brand-600 block mb-3">
-            VISIT & CONNECT
+            VISIT &amp; CONNECT
           </span>
           <h2 className="font-display font-extrabold text-3xl sm:text-4xl text-gray-900 tracking-tight mb-4">
             Find Us in Lagos Island
@@ -120,6 +230,185 @@ Sent via Rozay Kitchen Lagos Web Platform`;
             Located in the prominent wholesale hub of Idumota Market, Lagos Island. Ready to fulfill nationwide shipping.
           </p>
           <div className="w-12 h-1 bg-brand-500 mx-auto rounded-full mt-4" />
+        </div>
+
+        {/* Interactive Storefront Auto-Scroll Showcase */}
+        <div 
+          className="mb-16 bg-stone-50/90 rounded-3xl p-6 sm:p-8 lg:p-10 border border-stone-200 shadow-xs transition-all"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          onTouchStart={() => setIsHovered(true)}
+          onTouchEnd={() => {
+            setTimeout(() => setIsHovered(false), 3000);
+          }}
+        >
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-mono font-bold uppercase tracking-wider mb-2.5">
+                <Store className="w-3.5 h-3.5 text-amber-700" />
+                <span>STOREFRONT &amp; SHOWROOM GALLERY</span>
+              </div>
+              <h3 className="font-display font-extrabold text-2xl sm:text-3xl text-gray-950 tracking-tight">
+                Take a Look Inside Rozay Kitchen
+              </h3>
+              <p className="text-sm text-gray-600 mt-1 max-w-2xl">
+                Browse our live physical storefront at Ebute-ero Market, Idumota, Lagos Island. Fully stocked with premium chafing warmers, cookware bundles, and commercial catering supplies.
+              </p>
+            </div>
+
+            {/* Carousel Controls: Play/Pause and Next/Prev */}
+            <div className="flex items-center gap-2.5 shrink-0 self-start md:self-auto">
+              {/* Autoplay Play/Pause Toggle */}
+              <button
+                type="button"
+                onClick={() => setIsAutoPlaying((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-mono font-semibold transition-all cursor-pointer shadow-xs ${
+                  isAutoPlaying && !isHovered
+                    ? "bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+                    : isAutoPlaying && isHovered
+                    ? "bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100"
+                    : "bg-white border-stone-300 text-stone-700 hover:bg-stone-100"
+                }`}
+                title={isAutoPlaying ? (isHovered ? "Paused on Hover" : "Click to Pause Auto-scroll") : "Click to Resume Auto-scroll"}
+              >
+                {isAutoPlaying ? (
+                  isHovered ? (
+                    <>
+                      <Pause className="w-3.5 h-3.5 text-amber-600" />
+                      <span className="hidden sm:inline">Hover Paused</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <Pause className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="hidden sm:inline">Auto-Scrolling</span>
+                    </>
+                  )
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5 text-stone-600 fill-stone-600" />
+                    <span className="hidden sm:inline">Resume Play</span>
+                  </>
+                )}
+              </button>
+
+              {/* Prev / Next Arrows */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  className="w-10 h-10 rounded-xl border border-stone-300 bg-white hover:bg-stone-100 text-stone-800 flex items-center justify-center transition-all shadow-xs active:scale-95 cursor-pointer"
+                  aria-label="Previous storefront image"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="w-10 h-10 rounded-xl border border-stone-300 bg-white hover:bg-stone-100 text-stone-800 flex items-center justify-center transition-all shadow-xs active:scale-95 cursor-pointer"
+                  aria-label="Next storefront image"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Horizontal Auto-Scroll Track */}
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleContainerScroll}
+            className="flex gap-6 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory scroll-smooth"
+            style={{ scrollbarWidth: "thin" }}
+          >
+            {STOREFRONT_PHOTOS.map((photo, index) => {
+              const isActive = currentIndex === index;
+              return (
+                <motion.div
+                  key={photo.id}
+                  data-storefront-card
+                  whileHover={{ y: -4 }}
+                  transition={{ duration: 0.2 }}
+                  onClick={() => setSelectedPhoto(photo)}
+                  className={`group snap-center shrink-0 w-[85vw] sm:w-[360px] md:w-[400px] bg-white rounded-2xl overflow-hidden border transition-all cursor-pointer flex flex-col ${
+                    isActive 
+                      ? "border-amber-400 ring-2 ring-amber-400/30 shadow-md" 
+                      : "border-stone-200 shadow-sm hover:shadow-md"
+                  }`}
+                >
+                  {/* Image Frame */}
+                  <div className="relative aspect-4/3 w-full bg-stone-100 overflow-hidden">
+                    <SafeImage
+                      src={photo.src}
+                      fallbackSrc={photo.fallbackSrc}
+                      alt={photo.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      containerClassName="w-full h-full"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
+                    
+                    {/* Badge */}
+                    <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[11px] font-bold tracking-wide uppercase font-mono border border-white/20">
+                      {photo.badge}
+                    </span>
+
+                    {/* Expand button hint */}
+                    <span className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/90 text-stone-900 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md">
+                      <Maximize2 className="w-4 h-4" />
+                    </span>
+                  </div>
+
+                  {/* Details Footer */}
+                  <div className="p-5 flex flex-col justify-between grow space-y-2">
+                    <div>
+                      <h4 className="font-display font-bold text-lg text-gray-900 group-hover:text-brand-600 transition-colors">
+                        {photo.title}
+                      </h4>
+                      <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-1 font-medium">
+                        <MapPin className="w-3.5 h-3.5 text-brand-500 shrink-0" />
+                        <span>{photo.location}</span>
+                      </p>
+                    </div>
+                    <p className="text-xs text-gray-600 leading-relaxed pt-1">
+                      {photo.description}
+                    </p>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* Indicators and Navigation Bar */}
+          <div className="mt-4 pt-4 border-t border-stone-200/70 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-500">
+            {/* Clickable Pagination Dots */}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-mono text-stone-400 mr-1">Views:</span>
+              {STOREFRONT_PHOTOS.map((photo, idx) => (
+                <button
+                  key={photo.id}
+                  type="button"
+                  onClick={() => scrollToIndex(idx)}
+                  className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
+                    currentIndex === idx
+                      ? "w-8 bg-amber-600"
+                      : "w-2.5 bg-stone-300 hover:bg-stone-400"
+                  }`}
+                  aria-label={`Jump to storefront photo ${idx + 1}`}
+                />
+              ))}
+            </div>
+
+            {/* Instruction / Auto-scroll info */}
+            <div className="flex items-center gap-4 text-stone-500 text-xs">
+              <span className="flex items-center gap-1.5">
+                <Eye className="w-3.5 h-3.5 text-stone-400" />
+                <span>Click image to view in HD</span>
+              </span>
+              <span className="font-mono text-[11px] text-stone-400">
+                {currentIndex + 1} / {STOREFRONT_PHOTOS.length}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Content Box: Form and Map Details splitter */}
@@ -138,7 +427,7 @@ Sent via Rozay Kitchen Lagos Web Platform`;
                 </div>
                 <div>
                   <h4 className="font-bold text-sm text-gray-900 uppercase tracking-wide font-mono">
-                    Warehouse Location
+                    SHOP LOCATION
                   </h4>
                   <p className="text-gray-600 text-xs sm:text-sm mt-1 leading-relaxed">
                     {BRAND_INFO.location}
@@ -187,45 +476,6 @@ Sent via Rozay Kitchen Lagos Web Platform`;
                 </div>
               </div>
 
-            </div>
-
-            {/* Idumota & Eko Market Photo Feature */}
-            <div className="bg-stone-50 rounded-3xl overflow-hidden shadow-sm border border-gray-150">
-              <div className="relative h-56 sm:h-64 w-full bg-stone-900 group">
-                <img
-                  src="/images/lagos_island_eko_market.jpg"
-                  alt="Lagos Island Eko Market with yellow Danfo buses"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                  loading="lazy"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    if (!target.src.endsWith("/images/eko_market_lagos.jpg")) {
-                      target.src = "/images/eko_market_lagos.jpg";
-                    } else if (!target.src.endsWith("/images/idumota_lagos_market.jpg")) {
-                      target.src = "/images/idumota_lagos_market.jpg";
-                    } else {
-                      target.src = "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80";
-                    }
-                  }}
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-950/40 to-transparent p-5 flex flex-col justify-end text-white">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="px-2 py-0.5 rounded bg-amber-500 text-stone-950 font-mono text-[9px] font-extrabold uppercase tracking-wider w-fit">
-                      Eko Market — Lagos Island
-                    </span>
-                    <span className="text-[10px] text-amber-300 font-semibold flex items-center gap-1">
-                      <Bus className="w-3 h-3 text-amber-400" /> Yellow Danfo Buses Route
-                    </span>
-                  </div>
-                  <h4 className="font-extrabold text-base text-white leading-tight">
-                    Lagos Island Eko Market & Gorodom Street View
-                  </h4>
-                  <p className="text-xs text-stone-300 font-medium mt-0.5">
-                    Block N Shop 89, 90, 91, 92 Gorodom, Idumota, Lagos Island
-                  </p>
-                </div>
-              </div>
             </div>
 
             {/* Interactive Google Map */}
@@ -441,6 +691,65 @@ Sent via Rozay Kitchen Lagos Web Platform`;
         </div>
 
       </div>
+
+      {/* High-Resolution Storefront Photo Lightbox */}
+      <AnimatePresence>
+        {selectedPhoto && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedPhoto(null)}
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative max-w-4xl w-full bg-stone-900 rounded-3xl overflow-hidden shadow-2xl border border-stone-800 text-white"
+            >
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setSelectedPhoto(null)}
+                className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition-colors border border-white/20 cursor-pointer"
+                aria-label="Close preview"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Modal Photo Frame */}
+              <div className="relative max-h-[70vh] bg-black flex items-center justify-center overflow-hidden">
+                <SafeImage
+                  src={selectedPhoto.src}
+                  fallbackSrc={selectedPhoto.fallbackSrc}
+                  alt={selectedPhoto.title}
+                  className="max-h-[70vh] w-auto max-w-full object-contain"
+                />
+              </div>
+
+              {/* Modal Details */}
+              <div className="p-6 bg-stone-950 border-t border-stone-800 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold uppercase tracking-wider border border-amber-500/30">
+                    {selectedPhoto.badge}
+                  </span>
+                  <span className="text-xs text-stone-400 font-mono">
+                    {selectedPhoto.location}
+                  </span>
+                </div>
+                <h3 className="font-display font-bold text-xl text-white">
+                  {selectedPhoto.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
+                  {selectedPhoto.description}
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

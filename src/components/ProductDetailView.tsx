@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { Product, Review } from "../types";
 import { getProductImageUrl } from "../lib/supabase";
+import SafeImage from "./SafeImage";
 import { 
   ArrowLeft, Star, ShoppingBag, Truck, ShieldCheck, 
   Sparkles, Heart, CheckCircle2, MessageCircle, Send,
@@ -175,22 +176,16 @@ export default function ProductDetailView({
           
           {/* LEFT: Stellar image panel (5 Column on lg) */}
           <div className="lg:col-span-6 space-y-4">
-            <div className="relative w-full pt-[100%] sm:pt-[0] sm:aspect-square sm:[min-height:350px] bg-white rounded-2xl overflow-hidden border border-gray-100 group">
-              {product.image ? (
-                <img
-                  src={getProductImageUrl(product.image)}
-                  alt={product.name}
-                  referrerPolicy="no-referrer"
-                  loading="lazy"
-                  decoding="async"
-                          onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <ShoppingBag className="w-24 h-24 text-gray-300 stroke-[1.5]" />
-                </div>
-              )}
+            <div className="relative w-full pt-[100%] sm:pt-[0] sm:aspect-square sm:[min-height:350px] bg-stone-100 rounded-2xl overflow-hidden border border-gray-100 group">
+              <SafeImage
+                src={getProductImageUrl(product.image)}
+                alt={product.name}
+                fallbackIcon="shopping-bag"
+                fallbackSrc="https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"
+                containerClassName="absolute inset-0 w-full h-full"
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                iconClassName="w-20 h-20 text-stone-300 stroke-[1.5]"
+              />
               
               {/* Premium Luxury badges */}
               <div className="absolute top-4 left-4 flex flex-col gap-2">
@@ -655,22 +650,16 @@ export default function ProductDetailView({
                   key={rel.id}
                   className="bg-white rounded-2xl border border-gray-150 overflow-hidden shadow-2xs hover:shadow-xs transition-shadow flex flex-col justify-between"
                 >
-                  <div className="relative w-full pt-[100%] bg-white overflow-hidden">
-                    {rel.image ? (
-                      <img
-                        src={getProductImageUrl(rel.image)}
-                        alt={rel.name}
-                        referrerPolicy="no-referrer"
-                        loading="lazy"
-                        decoding="async"
-                          onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
-                        className="absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <ShoppingBag className="w-12 h-12 text-gray-300 stroke-[1.5]" />
-                      </div>
-                    )}
+                  <div className="relative w-full pt-[100%] bg-stone-100 overflow-hidden">
+                    <SafeImage
+                      src={getProductImageUrl(rel.image)}
+                      alt={rel.name}
+                      fallbackIcon="shopping-bag"
+                      fallbackSrc="https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"
+                      containerClassName="absolute inset-0 w-full h-full"
+                      className="w-full h-full object-cover hover:scale-105 transition-transform"
+                      iconClassName="w-12 h-12 text-stone-300 stroke-[1.5]"
+                    />
                   </div>
                   <div className="p-5 flex-1 flex flex-col justify-between">
                     <div>

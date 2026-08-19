@@ -14,38 +14,16 @@ interface HeaderProps {
 export default function Header({ cartCount, onOpenCart, onOpenAdmin, currentView, onNavigate }: HeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isStoreOpen, setIsStoreOpen] = useState(true);
   const [shopDropdownOpen, setShopDropdownOpen] = useState(false);
 
-  // Check if store is open based on business hours
-  // Monday - Saturday, 8:00 AM - 6:00 PM (Lagos/West African Time - UTC+1)
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
 
-    const checkStoreStatus = () => {
-      // Use local client time, adjust to represent the business hours gracefully
-      const now = new Date();
-      const day = now.getDay(); // 0 is Sunday, 1 is Monday, etc.
-      const hour = now.getHours();
-
-      if (day === 0) {
-        setIsStoreOpen(false); // Closed on Sundays
-      } else if (hour >= 8 && hour < 18) {
-        setIsStoreOpen(true); // Open between 8:00 AM and 6:00 PM
-      } else {
-        setIsStoreOpen(false); // Closed offline hours
-      }
-    };
-
     window.addEventListener("scroll", handleScroll);
-    checkStoreStatus();
-    const interval = setInterval(checkStoreStatus, 60000);
-
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      clearInterval(interval);
     };
   }, []);
 
@@ -123,7 +101,7 @@ export default function Header({ cartCount, onOpenCart, onOpenAdmin, currentView
           </nav>
 
           {/* Logo & Brand Name (Centered) */}
-          <a onClick={(e) => { e.preventDefault(); onNavigate("home"); }} className="lg:absolute lg:left-1/2 lg:-translate-x-1/2 flex items-center gap-3 group cursor-pointer">
+          <a onClick={(e) => { e.preventDefault(); onNavigate("home"); }} className="lg:absolute lg:left-1/2 lg:-translate-x-1/2 flex items-center gap-3 group cursor-pointer" aria-label="Rozay Kitchen Home">
             <div className="w-12 h-12 flex items-center justify-center text-gray-950 group-hover:scale-105 transition-transform">
               <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
                 {/* The 'G' bottom loop */}
@@ -132,31 +110,10 @@ export default function Header({ cartCount, onOpenCart, onOpenAdmin, currentView
                 <path d="M 20 60 L 20 25 L 35 40 L 50 25 L 65 40 L 80 25 L 80 60 L 72 60 L 72 35 L 65 43 L 50 28 L 35 43 L 28 35 L 28 60 Z" fill="currentColor" />
               </svg>
             </div>
-            <div className="flex flex-col justify-center">
-              <span className="font-display font-black text-2xl leading-none tracking-widest text-gray-950 block">
-                ROZAY
-              </span>
-              <span className="text-[9px] uppercase tracking-widest font-sans font-medium text-gray-500 block leading-tight mt-0.5">
-                Luxurious Kitchen
-              </span>
-            </div>
           </a>
 
-          {/* Right Accessories (Status, WhatsApp link, inquiry bag button) */}
+          {/* Right Accessories (WhatsApp link, Owner portal, inquiry bag button) */}
           <div className="hidden sm:flex items-center gap-4">
-            
-            {/* Store status badge */}
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border bg-stone-50 border-stone-200">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  isStoreOpen ? "bg-emerald-500 animate-pulse" : "bg-rose-400"
-                }`}
-              />
-              <span className="text-gray-600">
-                {isStoreOpen ? "STORE OPEN NOW" : "STORE OFFLINE"}
-              </span>
-            </div>
-
             {/* Owner portal trigger */}
             {currentView !== "home" && (
               <button
@@ -289,14 +246,6 @@ export default function Header({ cartCount, onOpenCart, onOpenAdmin, currentView
           )}
 
           <hr className="border-gray-100 my-1" />
-
-          <div className="flex items-center justify-between px-3 py-1.5">
-            <span className="text-xs font-mono text-gray-500">Business Status:</span>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border bg-stone-50 border-stone-150">
-              <span className={`w-1.5 h-1.5 rounded-full ${isStoreOpen ? "bg-emerald-500" : "bg-rose-400"}`} />
-              <span className="text-gray-600 text-[11px]">{isStoreOpen ? "Open Now" : "Closed"}</span>
-            </div>
-          </div>
 
           <div className="flex gap-4 px-3 mt-1">
             <a

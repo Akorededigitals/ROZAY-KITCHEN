@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Product, Order } from "../types";
 import { addDbOrder, addDbSubmission, getProductImageUrl } from "../lib/supabase";
+import SafeImage from "./SafeImage";
 import { 
   ShoppingBag, Trash2, ArrowLeft, ShieldCheck, CreditCard,
   Phone, Mail, User, MapPin, Tag, Truck, Check, HelpCircle,
@@ -367,14 +368,14 @@ This summary is prepared for Rozay Kitchen Fulfillment Center Lagos State. Pleas
                     {cartItems.map((item) => (
                       <div key={item.product.id} className="py-4.5 flex gap-4 first:pt-0 last:pb-0 items-start">
                         <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-stone-50 overflow-hidden shrink-0 border border-gray-100">
-                          <img
+                          <SafeImage
                             src={getProductImageUrl(item.product.image)}
                             alt={item.product.name}
-                            referrerPolicy="no-referrer"
-                            loading="lazy"
-                            decoding="async"
-                            onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
+                            fallbackIcon="shopping-bag"
+                            fallbackSrc="https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"
+                            containerClassName="w-full h-full"
                             className="w-full h-full object-cover"
+                            iconClassName="w-7 h-7 text-stone-300 stroke-[1.5]"
                           />
                         </div>
 

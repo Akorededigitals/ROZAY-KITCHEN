@@ -4,6 +4,7 @@ import { Search, X, ChevronRight, Plus, Check, Info, ArrowUpRight, Flame, BadgeA
 import { Product, InquiryItem } from "../types";
 import { PRODUCTS_DATA, CATEGORIES, BRAND_INFO } from "../data";
 import { getProductImageUrl } from "../lib/supabase";
+import SafeImage from "./SafeImage";
 
 interface ProductCatalogProps {
   key?: string;
@@ -171,22 +172,16 @@ export default function ProductCatalog({
                   >
                     
                     {/* Upper cover photo container */}
-                    <div className="relative w-full pt-[100%] shrink-0 bg-white overflow-hidden">
-                      {product.image ? (
-                        <img
-                          src={getProductImageUrl(product.image)}
-                          alt={product.name}
-                          referrerPolicy="no-referrer"
-                          loading="lazy"
-                          decoding="async"
-                          onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
-                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <ShoppingBag className="w-16 h-16 text-gray-300 stroke-[1.5]" />
-                        </div>
-                      )}
+                    <div className="relative w-full pt-[100%] shrink-0 bg-stone-100 overflow-hidden">
+                      <SafeImage
+                        src={getProductImageUrl(product.image)}
+                        alt={product.name}
+                        fallbackIcon="shopping-bag"
+                        fallbackSrc="https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"
+                        containerClassName="absolute inset-0 w-full h-full"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        iconClassName="w-14 h-14 text-stone-300 stroke-[1.5]"
+                      />
                       
                       {/* Category Label Overlay */}
                       <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-xs text-[10px] font-bold text-gray-800 uppercase tracking-widest px-2.5 py-1 rounded-md shadow-xs border border-gray-100">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { Routes, Route, useNavigate, useLocation, useParams } from "react-router-dom";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import AboutSection from "./components/AboutSection";
@@ -26,6 +26,49 @@ import { Product, InquiryItem, Order } from "./types";
 import { PRODUCTS_DATA, BRAND_INFO } from "./data";
 import { ChefHat, MapPin, Settings, Instagram, Facebook, Mail, Phone } from "lucide-react";
 import { getDbProducts, addDbProduct, updateDbProduct, deleteDbProduct } from "./lib/supabase";
+
+function ProductDetailRouteWrapper({
+  products,
+  selectedProduct,
+  onBack,
+  onAddToCart,
+  onInstantBuy
+}: {
+  products: Product[];
+  selectedProduct: Product | null;
+  onBack: () => void;
+  onAddToCart: (prod: Product, qty: number) => void;
+  onInstantBuy: (prod: Product) => void;
+}) {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const product = selectedProduct || products.find((p) => p.id === id);
+
+  if (!product) {
+    return (
+      <div className="pt-36 pb-20 text-center text-gray-500 max-w-md mx-auto px-4">
+        <h3 className="text-xl font-bold text-gray-900 mb-2">Product Not Found</h3>
+        <p className="text-sm text-gray-500 mb-6">The requested product could not be located in our catalog.</p>
+        <button
+          onClick={() => navigate("/shop")}
+          className="px-6 py-2.5 bg-stone-900 text-white text-sm font-bold rounded-xl hover:bg-stone-800 transition-colors"
+        >
+          Return to Shop
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <ProductDetailView
+      product={product}
+      allProducts={products}
+      onBack={onBack}
+      onAddToCart={onAddToCart}
+      onInstantBuy={onInstantBuy}
+    />
+  );
+}
 
 function CategoryWrapper({ products, cartItems, onAddToCart, onRemoveFromCart, onUpdateCartQuantity, onViewProductDetail }: any) {
   const location = useLocation();
@@ -225,32 +268,26 @@ export default function App() {
           } />
           
           <Route path="/product/:id" element={
-            selectedDetailedProduct ? (
-              <ProductDetailView
-                product={selectedDetailedProduct}
-                allProducts={products}
-                onBack={() => navigate(-1)}
-                onAddToCart={(prod, qty) => {
-                  handleAddToCart(prod, qty);
-                }}
-                onInstantBuy={(prod) => {
-                  setCartItems((prevItems) => {
-                    const existing = prevItems.find(item => item.product.id === prod.id);
-                    if (existing) {
-                      return prevItems.map(item =>
-                        item.product.id === prod.id ? { ...item, quantity: item.quantity + 1 } : item
-                      );
-                    }
-                    return [...prevItems, { product: prod, quantity: 1 }];
-                  });
-                  navigate("/checkout");
-                }}
-              />
-            ) : (
-              <div className="pt-32 pb-16 text-center text-gray-500">
-                Product not found. <button onClick={() => navigate("/shop")} className="text-brand-500 underline ml-2">Back to shop</button>
-              </div>
-            )
+            <ProductDetailRouteWrapper
+              products={products}
+              selectedProduct={selectedDetailedProduct}
+              onBack={() => navigate(-1)}
+              onAddToCart={(prod, qty) => {
+                handleAddToCart(prod, qty);
+              }}
+              onInstantBuy={(prod) => {
+                setCartItems((prevItems) => {
+                  const existing = prevItems.find(item => item.product.id === prod.id);
+                  if (existing) {
+                    return prevItems.map(item =>
+                      item.product.id === prod.id ? { ...item, quantity: item.quantity + 1 } : item
+                    );
+                  }
+                  return [...prevItems, { product: prod, quantity: 1 }];
+                });
+                navigate("/checkout");
+              }}
+            />
           } />
 
           <Route path="/about" element={

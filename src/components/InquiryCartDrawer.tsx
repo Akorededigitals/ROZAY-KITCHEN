@@ -4,6 +4,7 @@ import { X, Trash2, ShoppingBag, Plus, Minus, Send, Clipboard, Check, Sparkles }
 import { InquiryItem } from "../types";
 import { BRAND_INFO } from "../data";
 import { getProductImageUrl } from "../lib/supabase";
+import SafeImage from "./SafeImage";
 
 interface InquiryCartDrawerProps {
   isOpen: boolean;
@@ -165,14 +166,14 @@ export default function InquiryCartDrawer({
                         key={item.product.id}
                         className="flex items-center gap-3.5 py-2.5 first:pt-0"
                       >
-                        <img
+                        <SafeImage
                           src={getProductImageUrl(item.product.image)}
                           alt={item.product.name}
-                          referrerPolicy="no-referrer"
-                          loading="lazy"
-                          decoding="async"
-                          onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
-                          className="w-14 h-14 rounded-lg object-cover bg-stone-100 shrink-0 border border-gray-100"
+                          fallbackIcon="shopping-bag"
+                          fallbackSrc="https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"
+                          containerClassName="w-14 h-14 rounded-lg shrink-0 border border-gray-100 bg-stone-100"
+                          className="w-full h-full object-cover"
+                          iconClassName="w-6 h-6 text-stone-300 stroke-[1.5]"
                         />
                         <div className="flex-1 min-w-0">
                           <h4 className="text-xs font-bold text-gray-900 truncate">

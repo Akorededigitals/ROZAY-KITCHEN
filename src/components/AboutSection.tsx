@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
-import { Award, Compass, Eye, MapPin, Building, Flag } from "lucide-react";
+import { Award, Compass, Eye, MapPin, Building, Flag, Sparkles } from "lucide-react";
 import { BRAND_INFO } from "../data";
+import SafeImage from "./SafeImage";
 
 export default function AboutSection() {
   // Format the text into paragraphs
@@ -60,23 +61,57 @@ export default function AboutSection() {
             </div>
 
             {/* CEO Profile Section */}
-            <div className="mt-8 p-5 bg-gradient-to-r from-amber-50/60 via-stone-50 to-white rounded-2xl border border-amber-200/80 shadow-sm">
-              <div className="flex-1 text-center sm:text-left">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold uppercase tracking-wider mb-1.5">
-                  <Award className="w-3 h-3 text-amber-600" />
-                  <span>FOUNDER &amp; CEO</span>
-                </div>
-                
-                <h4 className="font-display font-extrabold text-xl text-gray-950 tracking-tight">
-                  Alaekwe Onyebuchi
-                </h4>
-                <p className="text-xs font-mono text-brand-700 font-semibold tracking-wide mb-2">
-                  CEO ROZAY KITCHEN — Lagos Island
-                </p>
+            <div className="mt-8 p-6 sm:p-7 bg-gradient-to-br from-amber-50/80 via-stone-50 to-white rounded-3xl border border-amber-200/90 shadow-sm relative overflow-hidden">
+              {/* Subtle decorative glow */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-200/30 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
 
-                <p className="text-xs text-gray-600 leading-relaxed">
-                  Under Alaekwe Onyebuchi's leadership, Rozay Kitchen has grown into Lagos Island's premier wholesale and retail destination for luxury chafing dishes, cookware sets, and catering equipment.
-                </p>
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 relative">
+                {/* CEO Image Container with Portrait Aspect Ratio */}
+                <div className="relative shrink-0">
+                  <div className="w-32 sm:w-36 aspect-[3/4] rounded-2xl overflow-hidden shadow-lg border-2 border-white ring-2 ring-amber-400/50 bg-stone-100">
+                    <SafeImage
+                      src="/images/ceo_alaekwe_onyebuchi.jpg"
+                      fallbackSrc="https://i.ibb.co/gbjcKSgb/Whats-App-Image-2026-08-13-at-17-09-03.jpg"
+                      alt="Alaekwe Onyebuchi - Founder & CEO of Rozay Kitchen"
+                      className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-500"
+                      containerClassName="w-full h-full"
+                    />
+                  </div>
+                  <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-auto sm:-right-1 px-2.5 py-0.5 rounded-full bg-stone-950 text-amber-300 font-mono text-[10px] font-extrabold tracking-wider shadow-md border border-amber-400/40 uppercase whitespace-nowrap">
+                    FOUNDER &amp; CEO
+                  </span>
+                </div>
+
+                {/* CEO Information & Bio */}
+                <div className="flex-1 text-center sm:text-left pt-2 sm:pt-0 space-y-2">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-950 text-[10px] font-bold uppercase tracking-wider font-mono">
+                    <Award className="w-3 h-3 text-amber-700" />
+                    <span>EXECUTIVE LEADERSHIP</span>
+                  </div>
+                  
+                  <h4 className="font-display font-extrabold text-2xl text-gray-950 tracking-tight">
+                    Alaekwe Onyebuchi
+                  </h4>
+                  <p className="text-xs font-mono text-brand-700 font-bold tracking-wide">
+                    CEO, ROZAY KITCHEN — Lagos Island, Nigeria
+                  </p>
+
+                  <p className="text-xs sm:text-sm text-gray-600 leading-relaxed pt-1">
+                    Under Alaekwe Onyebuchi's visionary direction, Rozay Kitchen has become Lagos Island's premier wholesale and retail destination for luxury chafing warmers, granite cookware sets, and industrial catering equipment.
+                  </p>
+                  
+                  <div className="pt-2 flex items-center justify-center sm:justify-start gap-4 text-[11px] font-mono text-stone-500">
+                    <span className="flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-amber-500" />
+                      <span>Verified Quality</span>
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <Building className="w-3 h-3 text-stone-400" />
+                      <span>Ebute-Ero Market</span>
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

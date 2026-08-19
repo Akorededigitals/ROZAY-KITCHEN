@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { CATEGORIES } from "../data";
 import { getDbOrders, getDbSubmissions, isSupabaseConfigured, supabase, getProductImageUrl, uploadProductImageToSupabase } from "../lib/supabase";
+import SafeImage from "./SafeImage";
 
 interface AdminDashboardProps {
   products: Product[];
@@ -575,14 +576,14 @@ export default function AdminDashboard({
                       ) : uploadedImageUrl ? (
                         <div className="space-y-2 relative group py-1">
                           <div className="relative inline-block">
-                            <img
+                            <SafeImage
                               src={uploadedImageUrl}
                               alt="Product preview"
-                              loading="lazy"
-                              decoding="async"
-                              referrerPolicy="no-referrer"
-                              onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
-                              className="mx-auto w-28 h-28 rounded-xl object-cover border border-gray-200 bg-white shadow-sm"
+                              fallbackIcon="shopping-bag"
+                              fallbackSrc="https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"
+                              containerClassName="mx-auto w-28 h-28 rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                              className="w-full h-full object-cover"
+                              iconClassName="w-10 h-10 text-stone-300 stroke-[1.5]"
                             />
                             <button
                               type="button"
@@ -680,17 +681,14 @@ export default function AdminDashboard({
               <div className="divide-y divide-gray-150 space-y-4">
                 {products.map((p) => (
                   <div key={p.id} className="pt-4 first:pt-0 flex gap-4 items-start">
-                    <img
+                    <SafeImage
                       src={getProductImageUrl(p.image)}
                       alt={p.name}
-                      referrerPolicy="no-referrer"
-                      loading="lazy"
-                      decoding="async"
-                          onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
-                      
-                      
-                      
-                      className="w-14 h-14 rounded-xl object-cover shrink-0 border border-gray-100 bg-stone-100"
+                      fallbackIcon="shopping-bag"
+                      fallbackSrc="https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"
+                      containerClassName="w-14 h-14 rounded-xl shrink-0 border border-gray-100 bg-stone-100"
+                      className="w-full h-full object-cover"
+                      iconClassName="w-6 h-6 text-stone-300 stroke-[1.5]"
                     />
 
                     <div className="flex-1 min-w-0">

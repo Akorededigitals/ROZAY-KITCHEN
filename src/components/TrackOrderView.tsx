@@ -4,6 +4,7 @@ import { Search, Package, MapPin, Truck, CheckCircle2, ArrowRight } from "lucide
 import { Order } from "../types";
 import { getDbOrders, getProductImageUrl } from "../lib/supabase";
 import { Link } from "react-router-dom";
+import SafeImage from "./SafeImage";
 
 export default function TrackOrderView() {
   const [orderId, setOrderId] = useState("");
@@ -165,19 +166,15 @@ export default function TrackOrderView() {
                     <div key={idx} className="flex justify-between items-center bg-white p-3 border border-gray-100 rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gray-50 rounded-md overflow-hidden flex items-center justify-center">
-                          {item.image ? (
-                            <img 
-                              src={getProductImageUrl(item.image)} 
-                              alt={item.name} 
-                              referrerPolicy="no-referrer"
-                              loading="lazy"
-                              decoding="async"
-                              onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"; e.currentTarget.onerror = null; }}
-                              className="w-full h-full object-cover" 
-                            />
-                          ) : (
-                            <Package className="w-5 h-5 text-gray-300" />
-                          )}
+                          <SafeImage 
+                            src={getProductImageUrl(item.image)} 
+                            alt={item.name} 
+                            fallbackIcon="package"
+                            fallbackSrc="https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"
+                            containerClassName="w-full h-full"
+                            className="w-full h-full object-cover" 
+                            iconClassName="w-5 h-5 text-gray-300"
+                          />
                         </div>
                         <div>
                           <p className="font-medium text-sm text-gray-900">{item.name}</p>
