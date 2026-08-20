@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
+    "diagnose": "tsx scripts/diagnose-env.ts",
+    "check:env": "tsx scripts/diagnose-env.ts",
     "migrate-images": "tsx migrate-local-images.ts"
   },
   "dependencies": {

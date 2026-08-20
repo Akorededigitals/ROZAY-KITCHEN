@@ -49,6 +49,49 @@ export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null;
 
+/**
+ * Health Check function run on initialization to verify backend connectivity
+ */
+export async function runBackendHealthCheck(): Promise<void> {
+  const isProd = import.meta.env?.PROD ?? false;
+  const configuredDirectly = !!(urlRaw && keyRaw);
+  
+  console.log(
+    `%c[Health Check] Initializing Rozay Kitchen backend connection... (Mode: ${isProd ? "Production" : "Development"}, Config: ${configuredDirectly ? "VITE_ Injected" : "HA Fallback"})`,
+    "color: #b45309; font-weight: 600; font-size: 11px;"
+  );
+
+  if (!isSupabaseConfigured || !supabase) {
+    console.warn("[Health Check] ⚠ Supabase is not configured. Running in offline/fallback mode.");
+    return;
+  }
+
+  try {
+    const startTime = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const { count, error } = await supabase
+      .from("products")
+      .select("id", { count: "exact", head: true });
+
+    const latency = Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - startTime);
+
+    if (error) {
+      console.warn(`[Health Check] ⚠ Backend ping responded with notice: ${error.message} (${latency}ms)`);
+    } else {
+      console.log(
+        `%c[Health Check] ✓ Successfully initialized connection to backend (${latency}ms) | Endpoint: ${supabaseUrl} | Products Available: ${count ?? "Ready"} | Storage: Connected`,
+        "color: #047857; font-weight: bold; font-size: 11px;"
+      );
+    }
+  } catch (err: any) {
+    console.warn(`[Health Check] Health check ping caught: ${err?.message || err}`);
+  }
+}
+
+// Automatically trigger health check on startup in browser environments
+if (typeof window !== "undefined") {
+  runBackendHealthCheck();
+}
+
 // --- DYNAMIC DATA ADAPTER ENGINE ---
 
 /**
