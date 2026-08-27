@@ -11,6 +11,16 @@ const PORT = 3000;
 
 app.use(express.json());
 
+// Health check endpoint for Truehost, cPanel, and uptime monitoring
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    app: "Rozay Kitchen",
+    environment: process.env.NODE_ENV || "development",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // API Endpoint for AI Assistant Chat
 app.post("/api/chat", async (req, res) => {
   try {
