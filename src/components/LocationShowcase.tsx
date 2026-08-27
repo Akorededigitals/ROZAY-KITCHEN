@@ -56,7 +56,7 @@ export default function LocationShowcase() {
   const [mailtoUrl, setMailtoUrl] = useState("");
   const [selectedPhoto, setSelectedPhoto] = useState<typeof STOREFRONT_PHOTOS[0] | null>(null);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
-  const [isAutoPlaying, setIsAutoPlaying] = useState<boolean>(true);
+  const [isAutoPlaying, setIsAutoPlaying] = useState<boolean>(false);
   const [isHovered, setIsHovered] = useState<boolean>(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -66,10 +66,11 @@ export default function LocationShowcase() {
     const container = scrollContainerRef.current;
     const cards = container.querySelectorAll<HTMLElement>("[data-storefront-card]");
     if (cards[index]) {
-      cards[index].scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-        inline: "center"
+      const card = cards[index];
+      const targetLeft = card.offsetLeft - container.offsetLeft - (container.clientWidth - card.clientWidth) / 2;
+      container.scrollTo({
+        left: Math.max(0, targetLeft),
+        behavior: "smooth"
       });
       setCurrentIndex(index);
     }
@@ -85,7 +86,7 @@ export default function LocationShowcase() {
     scrollToIndex(nextIdx);
   }, [currentIndex, scrollToIndex]);
 
-  // Auto-scroll effect: advances every 3.8 seconds when active & not hovered
+  // Auto-scroll effect: only when explicitly enabled by user & not hovered
   useEffect(() => {
     if (!isAutoPlaying || isHovered || selectedPhoto !== null) return;
     
@@ -93,18 +94,20 @@ export default function LocationShowcase() {
       setCurrentIndex((prev) => {
         const nextIdx = (prev + 1) % STOREFRONT_PHOTOS.length;
         if (scrollContainerRef.current) {
-          const cards = scrollContainerRef.current.querySelectorAll<HTMLElement>("[data-storefront-card]");
+          const container = scrollContainerRef.current;
+          const cards = container.querySelectorAll<HTMLElement>("[data-storefront-card]");
           if (cards[nextIdx]) {
-            cards[nextIdx].scrollIntoView({
-              behavior: "smooth",
-              block: "nearest",
-              inline: "center"
+            const card = cards[nextIdx];
+            const targetLeft = card.offsetLeft - container.offsetLeft - (container.clientWidth - card.clientWidth) / 2;
+            container.scrollTo({
+              left: Math.max(0, targetLeft),
+              behavior: "smooth"
             });
           }
         }
         return nextIdx;
       });
-    }, 3800);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [isAutoPlaying, isHovered, selectedPhoto]);
@@ -281,13 +284,13 @@ Sent via Rozay Kitchen Lagos Web Platform`;
                     <>
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                       <Pause className="w-3.5 h-3.5 text-emerald-600" />
-                      <span className="hidden sm:inline">Auto-Scrolling</span>
+                      <span className="hidden sm:inline">Auto-Slide On</span>
                     </>
                   )
                 ) : (
                   <>
                     <Play className="w-3.5 h-3.5 text-stone-600 fill-stone-600" />
-                    <span className="hidden sm:inline">Resume Play</span>
+                    <span className="hidden sm:inline">Auto-Slide Off</span>
                   </>
                 )}
               </button>

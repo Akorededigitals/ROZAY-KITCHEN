@@ -1,0 +1,22 @@
+# =======================================================
+# Rozay Kitchen - Google Search Console & Robots Crawler Config
+# =======================================================
+
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /checkout
+Disallow: /api/
+
+User-agent: Googlebot-Image
+Allow: /images/
+Allow: /assets/
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /checkout
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://rozaykitchen.com/sitemap.xml

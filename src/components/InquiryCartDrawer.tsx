@@ -182,11 +182,9 @@ export default function InquiryCartDrawer({
                           <span className="text-[10px] text-gray-400 block truncate">
                             {item.product.category}
                           </span>
-                          {item.product.priceRange && (
-                            <span className="text-[10px] font-mono text-brand-600 block mt-0.5">
-                              Est: {item.product.priceRange}
-                            </span>
-                          )}
+                          <span className="text-[11px] font-mono font-bold text-gray-900 block mt-0.5">
+                            ₦{Number(item.product.discountPrice || item.product.price || 0).toLocaleString()}
+                          </span>
                         </div>
 
                         {/* Quantity Counter controls */}

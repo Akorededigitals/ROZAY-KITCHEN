@@ -100,16 +100,25 @@ export default function AboutSection() {
                     Under Alaekwe Onyebuchi's visionary direction, Rozay Kitchen has become Lagos Island's premier wholesale and retail destination for luxury chafing warmers, granite cookware sets, and industrial catering equipment.
                   </p>
                   
-                  <div className="pt-2 flex items-center justify-center sm:justify-start gap-4 text-[11px] font-mono text-stone-500">
-                    <span className="flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-amber-500" />
-                      <span>Verified Quality</span>
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Building className="w-3 h-3 text-stone-400" />
-                      <span>Ebute-Ero Market</span>
-                    </span>
+                  <div className="pt-3 flex flex-wrap items-center justify-center sm:justify-start gap-3">
+                    <a
+                      href="#ceo-showcase"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-950 text-amber-300 text-xs font-bold transition-all shadow hover:scale-105"
+                    >
+                      <span>▶ Watch CEO Showcase Video</span>
+                    </a>
+                    
+                    <div className="flex items-center gap-3 text-[11px] font-mono text-stone-500">
+                      <span className="flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-amber-500" />
+                        <span>Verified Quality</span>
+                      </span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <Building className="w-3 h-3 text-stone-400" />
+                        <span>Ebute-Ero Market</span>
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

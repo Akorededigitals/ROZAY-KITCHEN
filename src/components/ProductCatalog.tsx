@@ -177,7 +177,7 @@ export default function ProductCatalog({
                         src={getProductImageUrl(product.image)}
                         alt={product.name}
                         fallbackIcon="shopping-bag"
-                        fallbackSrc="https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"
+                        fallbackSrc="https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=90&w=1200&h=1200"
                         containerClassName="absolute inset-0 w-full h-full"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         iconClassName="w-14 h-14 text-stone-300 stroke-[1.5]"
@@ -199,50 +199,34 @@ export default function ProductCatalog({
                     </div>
 
                     {/* Middle info content block */}
-                    <div className="p-6 flex-1 flex flex-col justify-between">
+                    <div className="p-5 flex-1 flex flex-col justify-between">
                       <div>
-                        {/* Title & Estimated Pricing */}
-                        <div className="flex items-start justify-between gap-4 mb-2">
-                          <h3 className="font-display font-extrabold text-lg text-gray-900 group-hover:text-brand-600 transition-colors line-clamp-1 leading-snug">
-                            {product.name}
-                          </h3>
-                        </div>
-                        
-                        {/* Estimated target price info for transparency */}
-                        {product.priceRange && (
-                          <div className="text-[11px] font-mono font-semibold text-brand-600 bg-brand-50/50 inline-block px-1.5 py-0.5 rounded-sm mb-3">
-                            Estimated: {product.priceRange}
-                          </div>
-                        )}
+                        {/* Title */}
+                        <h3 
+                          onClick={() => onViewProductDetail(product)}
+                          className="font-display font-extrabold text-base sm:text-lg text-gray-900 group-hover:text-brand-600 transition-colors line-clamp-2 leading-snug cursor-pointer"
+                        >
+                          {product.name}
+                        </h3>
 
-                        <p className="text-gray-600 text-xs sm:text-sm line-clamp-2 leading-relaxed mb-4">
-                          {product.description}
-                        </p>
-
-                        {/* Stretched feature tag lists */}
-                        <div className="space-y-1.5 mb-6">
-                          {product.features.slice(0, 3).map((feat) => (
-                            <div key={feat} className="flex items-center gap-2 text-[11px] text-gray-500">
-                              <span className="w-1 h-1 rounded-full bg-brand-500 shrink-0" />
-                              <span className="truncate">{feat}</span>
-                            </div>
-                          ))}
+                        {/* Price with Naira symbol */}
+                        <div className="mt-2.5 flex items-baseline gap-2">
+                          <span className="text-lg sm:text-xl font-black text-gray-950 tracking-tight">
+                            ₦{Number(product.discountPrice || product.price || 0).toLocaleString()}
+                          </span>
+                          {product.discountPrice && (
+                            <span className="text-xs font-bold text-gray-400 line-through">
+                              ₦{Number(product.price || 0).toLocaleString()}
+                            </span>
+                          )}
                         </div>
                       </div>
 
-                      {/* Lower actions buttons block */}
-                      <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
-                        
-                        <button
-                          onClick={() => onViewProductDetail(product)}
-                          className="flex-1 py-2.5 px-3 rounded-xl border border-gray-200 hover:bg-stone-50 text-xs font-semibold text-gray-700 text-center transition-colors cursor-pointer"
-                        >
-                          Specifications
-                        </button>
-
+                      {/* Action button */}
+                      <div className="pt-4 mt-4 border-t border-gray-100">
                         <button
                           onClick={() => onAddToCart(product)}
-                          className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-300 transform active:scale-95 cursor-pointer ${
+                          className={`w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95 cursor-pointer ${
                             alreadyIn
                               ? "bg-stone-900 text-white hover:bg-stone-950 shadow-sm hover:-translate-y-0.5 hover:shadow-md"
                               : "bg-brand-500 hover:bg-brand-600 text-white shadow-xs hover:-translate-y-0.5 hover:shadow-md hover:shadow-brand-500/20"
@@ -250,13 +234,13 @@ export default function ProductCatalog({
                         >
                           {alreadyIn ? (
                             <>
-                              <Check className="w-3.5 h-3.5 stroke-[2.5] text-emerald-400" />
-                              <span>Added ({currentQty})</span>
+                              <Check className="w-4 h-4 stroke-[2.5] text-emerald-400" />
+                              <span>Added to Cart ({currentQty})</span>
                             </>
                           ) : (
                             <>
-                              <ShoppingBag className="w-3.5 h-3.5 stroke-[2.5] group-hover:animate-bounce" />
-                              <span>ORDER NOW</span>
+                              <ShoppingBag className="w-4 h-4 stroke-[2.5]" />
+                              <span>ADD TO CART</span>
                             </>
                           )}
                         </button>

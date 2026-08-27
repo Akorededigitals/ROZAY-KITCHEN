@@ -863,3 +863,23 @@ export const TESTIMONIALS: Testimonial[] = [
     feedback: "When equipping our new buffet line, we came directly to Ebutero Market and located Rozay Kitchen. They supplied us with state-of-the-art hospitality equipment and trays. Wholesale pricing and swift Lagos delivery."
   }
 ];
+
+export const DEFAULT_CEO_VIDEO_CONFIG = {
+  id: "ceo-video-featured",
+  title: "CEO Product Showcase & Live Demonstration",
+  subtitle: "Join Founder & CEO Alaekwe Onyebuchi as he walks through the engineering, gold finish, and roll-top durability of our signature chafing dishes.",
+  videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", // Or direct video file
+  videoType: "url" as const,
+  posterUrl: "https://i.ibb.co/gbjcKSgb/Whats-App-Image-2026-08-13-at-17-09-03.jpg",
+  featuredProductId: "rzk-prod-1782520037343", // 10 litres chaffing dish
+  ceoName: "Alaekwe Onyebuchi",
+  ceoTitle: "Founder & CEO, Rozay Kitchen",
+  description: "Watch a personal demonstration from our CEO on how to inspect, set up, and maintain our heavy-duty roll-top gold luxury chafing dishes for 5-star catering and luxury buffet events across Nigeria.",
+  talkingPoints: [
+    "Premium 304 food-grade surgical stainless steel construction",
+    "180° smooth hydraulic roll-top lid with tempered gold ergonomic handle",
+    "Dual high-efficiency fuel holders with water-pan heat retention",
+    "Wholesale Lagos Island dispatch with guaranteed countrywide delivery"
+  ],
+  isActive: true
+};

@@ -11,6 +11,7 @@ export interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement
   iconClassName?: string;
   showIconFallback?: boolean;
   loading?: "lazy" | "eager";
+  style?: React.CSSProperties;
 }
 
 export default function SafeImage({
@@ -22,6 +23,7 @@ export default function SafeImage({
   fallbackIcon = "shopping-bag",
   iconClassName = "w-8 h-8 text-stone-400 stroke-[1.5]",
   loading = "lazy",
+  style,
   ...props
 }: SafeImageProps) {
   // Build ordered queue of image URLs to try
@@ -44,6 +46,13 @@ export default function SafeImage({
     } else if (fallbackSrc && fallbackSrc.trim() && !urls.includes(fallbackSrc.trim())) {
       urls.push(fallbackSrc.trim());
     }
+
+    // Always provide reliable high-res showroom fallback if nothing else worked
+    const defaultLuxury = "https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=90&w=1200&h=1200";
+    if (!urls.includes(defaultLuxury)) {
+      urls.push(defaultLuxury);
+    }
+
     return urls;
   };
 
@@ -132,6 +141,12 @@ export default function SafeImage({
         referrerPolicy="no-referrer"
         onLoad={handleLoad}
         onError={handleError}
+        style={{
+          imageRendering: "auto",
+          WebkitBackfaceVisibility: "hidden",
+          transform: "translateZ(0)",
+          ...style,
+        }}
         className={`${className} transition-opacity duration-300 ${
           imgStatus === "loaded" ? "opacity-100" : "opacity-0"
         }`}

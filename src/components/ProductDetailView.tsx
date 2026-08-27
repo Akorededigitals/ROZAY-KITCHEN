@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { Product, Review } from "../types";
 import { getProductImageUrl } from "../lib/supabase";
 import SafeImage from "./SafeImage";
 import { 
   ArrowLeft, Star, ShoppingBag, Truck, ShieldCheck, 
   Sparkles, Heart, CheckCircle2, MessageCircle, Send,
-  Package, ThumbsUp, RefreshCw, AlertTriangle
+  Package, ThumbsUp, RefreshCw, AlertTriangle, ZoomIn, Maximize2, X
 } from "lucide-react";
 
 interface ProductDetailViewProps {
@@ -26,10 +26,11 @@ export default function ProductDetailView({
 }: ProductDetailViewProps) {
   const [quantity, setQuantity] = useState(1);
   const [isLiked, setIsLiked] = useState(false);
-  const [activeTab, setActiveTab] = useState<"specifications" | "reviews" | "delivery">("specifications");
+  const [activeTab, setActiveTab] = useState<"reviews" | "delivery">("reviews");
   const [selectedVariant, setSelectedVariant] = useState("");
   const [customPrice, setCustomPrice] = useState(product.price);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isHdZoomOpen, setIsHdZoomOpen] = useState(false);
 
   // Review Form States
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -176,21 +177,29 @@ export default function ProductDetailView({
           
           {/* LEFT: Stellar image panel (5 Column on lg) */}
           <div className="lg:col-span-6 space-y-4">
-            <div className="relative w-full pt-[100%] sm:pt-[0] sm:aspect-square sm:[min-height:350px] bg-stone-100 rounded-2xl overflow-hidden border border-gray-100 group">
+            <div 
+              onClick={() => setIsHdZoomOpen(true)}
+              className="relative w-full pt-[100%] sm:pt-[0] sm:aspect-square sm:[min-height:350px] bg-stone-100 rounded-2xl overflow-hidden border border-gray-100 group cursor-zoom-in"
+            >
               <SafeImage
                 src={getProductImageUrl(product.image)}
                 alt={product.name}
                 fallbackIcon="shopping-bag"
-                fallbackSrc="https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=80&w=800&h=800"
+                fallbackSrc="https://images.unsplash.com/photo-1506484381205-f7945653044d?auto=format&fit=crop&q=90&w=1600&h=1600"
                 containerClassName="absolute inset-0 w-full h-full"
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 iconClassName="w-20 h-20 text-stone-300 stroke-[1.5]"
               />
               
               {/* Premium Luxury badges */}
-              <div className="absolute top-4 left-4 flex flex-col gap-2">
+              <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-none">
                 <span className="bg-stone-900 border border-stone-800 text-white text-[10px] font-mono tracking-widest uppercase font-bold px-3 py-1 rounded-md shadow-md">
                   {product.category}
+                </span>
+
+                <span className="bg-emerald-600/90 backdrop-blur-xs border border-emerald-500 text-white text-[9px] font-mono font-bold px-2 py-0.5 rounded shadow-sm flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5" />
+                  <span>ULTRA HD</span>
                 </span>
 
                 {product.stockStatus === "High Demand" && (
@@ -207,9 +216,25 @@ export default function ProductDetailView({
                 )}
               </div>
 
+              {/* HD Zoom click trigger badge */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsHdZoomOpen(true);
+                }}
+                className="absolute bottom-4 right-4 bg-black/75 hover:bg-black text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-transform hover:scale-105 cursor-pointer"
+              >
+                <ZoomIn className="w-3.5 h-3.5 text-brand-400" />
+                <span>HD Zoom</span>
+              </button>
+
               {/* Heart Wishlist toggler */}
               <button
-                onClick={() => setIsLiked(!isLiked)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsLiked(!isLiked);
+                }}
                 className={`absolute top-4 right-4 p-3 rounded-full shadow-md backdrop-blur-xs transition-transform hover:scale-110 cursor-pointer ${
                   isLiked ? "bg-rose-50 text-rose-500" : "bg-white/90 text-gray-500 hover:text-rose-500"
                 }`}
@@ -288,10 +313,6 @@ export default function ProductDetailView({
               )}
             </div>
 
-            <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
-              {product.description}
-            </p>
-
             {/* Interactive Dynamic VARIATION Selectors */}
             <div className="space-y-3">
               <label className="text-[10px] tracking-wider uppercase font-mono font-bold text-gray-500 block">
@@ -363,7 +384,7 @@ export default function ProductDetailView({
                   className="w-full py-4 bg-brand-500 hover:bg-brand-600 text-white text-xs sm:text-sm font-extrabold rounded-xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 shadow-brand-500/10 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <ShoppingBag className="w-4 h-4 stroke-[2.5]" />
-                  <span>ORDER NOW</span>
+                  <span>ADD TO CART</span>
                 </button>
 
                 <button
@@ -405,16 +426,6 @@ export default function ProductDetailView({
           {/* Tabs Menu buttons */}
           <div className="flex border-b border-gray-150 bg-stone-50">
             <button
-              onClick={() => setActiveTab("specifications")}
-              className={`flex-1 py-4 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
-                activeTab === "specifications"
-                  ? "border-brand-500 text-brand-700 bg-white"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Specifications & Parameters
-            </button>
-            <button
               onClick={() => setActiveTab("reviews")}
               className={`flex-1 py-4 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 activeTab === "reviews"
@@ -422,7 +433,7 @@ export default function ProductDetailView({
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              <span>User Feedback & reviews</span>
+              <span>User Feedback & Reviews</span>
               <span className="bg-stone-200 text-stone-700 text-[10px] px-1.5 py-0.5 rounded-full">
                 {reviews.length}
               </span>
@@ -441,32 +452,6 @@ export default function ProductDetailView({
 
           {/* Tab Body contents */}
           <div className="p-6 sm:p-10">
-            
-            {activeTab === "specifications" && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-bold text-gray-900 text-sm mb-3">Key Technical Specifications:</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {product.features.map((feat, idx) => (
-                      <div key={idx} className="flex items-center gap-3 p-3 bg-stone-50 border border-gray-100 rounded-xl">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                        <span className="text-xs sm:text-sm text-gray-700 font-medium">{feat}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-4 bg-amber-50/40 border border-amber-200 rounded-2xl">
-                  <h4 className="font-bold text-amber-900 text-xs uppercase tracking-wider mb-1 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-brand-600 fill-brand-600" />
-                    <span>Lagos Showroom Guarantee</span>
-                  </h4>
-                  <p className="text-stone-600 text-xs leading-relaxed">
-                    All Rozay Kitchen catalog appliances undergo physical inspection at our Idumota depots prior to courier dispatch. We guarantee heavy food-safe standards, double heating verification under liquid testing, and elite metal aesthetics.
-                  </p>
-                </div>
-              </div>
-            )}
 
             {activeTab === "reviews" && (
               <div className="space-y-8">
@@ -685,6 +670,72 @@ export default function ProductDetailView({
         )}
 
       </div>
+
+      {/* FULLSCREEN ULTRA-HD LIGHTBOX MODAL */}
+      <AnimatePresence>
+        {isHdZoomOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-8"
+            onClick={() => setIsHdZoomOpen(false)}
+          >
+            {/* Top Toolbar */}
+            <div 
+              className="absolute top-4 left-4 right-4 flex items-center justify-between z-20"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 text-white px-3 py-1.5 rounded-full">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-xs font-bold font-mono tracking-wider">ULTRA-HD 4K RESOLUTION</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsHdZoomOpen(false)}
+                className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors cursor-pointer border border-white/20"
+                title="Close Fullscreen View"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* High-Resolution Center Image Container */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative max-w-5xl max-h-[85vh] w-full flex items-center justify-center p-2 select-none"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={getProductImageUrl(product.image)}
+                alt={product.name}
+                decoding="async"
+                style={{
+                  imageRendering: "auto",
+                  WebkitBackfaceVisibility: "hidden",
+                  transform: "translateZ(0)",
+                }}
+                className="max-h-[82vh] max-w-full object-contain rounded-xl shadow-2xl border border-white/10"
+              />
+            </motion.div>
+
+            {/* Bottom Title Bar */}
+            <div 
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-stone-900/90 border border-white/15 px-5 py-2.5 rounded-2xl text-center max-w-md w-[90%] z-20 backdrop-blur-md"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-white font-extrabold text-sm truncate">{product.name}</p>
+              <p className="text-emerald-400 font-mono font-bold text-xs mt-0.5">
+                ₦{Number(product.discountPrice || product.price || 0).toLocaleString()}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

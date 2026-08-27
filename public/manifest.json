@@ -1,0 +1,22 @@
+{
+  "short_name": "RozayKitchen",
+  "name": "Rozay Kitchen - Premium Kitchenware & Catering Equipment Lagos",
+  "description": "Shop luxury chafing dishes, premium cookware sets, commercial pots, coolers, and kitchen appliances in Lagos, Nigeria.",
+  "icons": [
+    {
+      "src": "/images/rozay_kitchen_hero_1781992826699.jpg",
+      "type": "image/jpeg",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/images/rozay_kitchen_hero_1781992826699.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0c0a09",
+  "theme_color": "#e11d48",
+  "display": "standalone",
+  "orientation": "portrait"
+}

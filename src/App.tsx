@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate, useLocation, useParams } from "react-router
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import AboutSection from "./components/AboutSection";
+import CeoVideoShowcase from "./components/CeoVideoShowcase";
 import WhyChooseUs from "./components/WhyChooseUs";
 import ProductCatalog from "./components/ProductCatalog";
 import TestimonialsSection from "./components/TestimonialsSection";
@@ -222,6 +223,27 @@ export default function App() {
               <Hero onShopNow={() => navigate("/shop")} />
               {/* Corporate Profile Story Section */}
               <AboutSection />
+              {/* Executive CEO Chafing Dish Video Showcase Slot */}
+              <CeoVideoShowcase
+                products={products}
+                onAddToCart={handleAddToCart}
+                onInstantBuy={(prod) => {
+                  setCartItems((prevItems) => {
+                    const existing = prevItems.find(item => item.product.id === prod.id);
+                    if (existing) {
+                      return prevItems.map(item =>
+                        item.product.id === prod.id ? { ...item, quantity: item.quantity + 1 } : item
+                      );
+                    }
+                    return [...prevItems, { product: prod, quantity: 1 }];
+                  });
+                  navigate("/checkout");
+                }}
+                onOpenProductDetail={(prod) => {
+                  setSelectedDetailedProduct(prod);
+                  navigate(`/product/${prod.id}`);
+                }}
+              />
               {/* Bento Board Market Advantages */}
               <WhyChooseUs />
               {/* Track Order Lookup */}

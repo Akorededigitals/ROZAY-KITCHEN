@@ -66,3 +66,18 @@ export interface ContactForm {
   productSelected?: string;
   quantitySelected?: number;
 }
+
+export interface CeoVideoConfig {
+  id?: string;
+  title: string;
+  subtitle: string;
+  videoUrl: string;
+  videoType: "url" | "youtube" | "uploaded";
+  posterUrl: string;
+  featuredProductId: string;
+  talkingPoints: string[];
+  ceoName: string;
+  ceoTitle: string;
+  description: string;
+  isActive: boolean;
+}
