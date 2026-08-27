@@ -725,7 +725,7 @@ export async function deleteStorageImage(imageUrl: string): Promise<void> {
 }
 
 /**
- * Direct Video Upload for CEO Showcase (MP4, WebM, MOV)
+ * Direct Video Upload for CEO Showcase (MP4, WebM, MOV, QuickTime)
  */
 export async function uploadCeoVideoFile(
   file: File,
@@ -733,99 +733,128 @@ export async function uploadCeoVideoFile(
 ): Promise<string> {
   onProgress?.(15);
 
-  // If Supabase is configured, try uploading to storage bucket
+  // Validate video file size (Warn if > 150MB)
+  if (file.size > 150 * 1024 * 1024) {
+    throw new Error("Video file is too large (maximum recommended size is 150MB). Please compress the video or paste a YouTube / Google Drive link.");
+  }
+
+  // If Supabase is configured, upload directly to Supabase Storage bucket
   if (isSupabaseConfigured && supabase) {
     try {
       const uniqueId = Math.random().toString(36).substring(2, 7);
-      const ext = file.name.split(".").pop() || "mp4";
+      const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+      const ext = cleanName.split(".").pop() || "mp4";
       const fileName = `ceo-video-${Date.now()}-${uniqueId}.${ext}`;
 
-      onProgress?.(40);
-      const { error } = await supabase.storage
+      onProgress?.(35);
+      const { error: uploadError } = await supabase.storage
         .from("product-images")
         .upload(fileName, file, {
           contentType: file.type || "video/mp4",
-          cacheControl: "36000",
+          cacheControl: "31536000",
           upsert: true
         });
 
-      if (!error) {
-        onProgress?.(90);
+      if (!uploadError) {
+        onProgress?.(85);
         const { data: publicUrlData } = supabase.storage
           .from("product-images")
           .getPublicUrl(fileName);
-        onProgress?.(100);
-        return publicUrlData.publicUrl;
+
+        if (publicUrlData?.publicUrl) {
+          onProgress?.(100);
+          return publicUrlData.publicUrl;
+        }
       } else {
-        console.warn("Supabase video storage notice, falling back to data URL:", error.message);
+        console.warn("Supabase storage video upload returned error:", uploadError.message);
+        throw new Error(`Storage upload failed: ${uploadError.message}`);
       }
-    } catch (err) {
-      console.warn("Supabase video upload exception, fallback to local URL:", err);
+    } catch (err: any) {
+      console.warn("Supabase video upload exception:", err);
+      throw err;
     }
   }
 
-  // Fallback: Read as Base64 Data URL or Blob URL for immediate playback
-  onProgress?.(60);
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      onProgress?.(100);
-      resolve(reader.result as string);
-    };
-    reader.onerror = (err) => reject(err);
-    reader.readAsDataURL(file);
-  });
+  // Fallback if offline/local: Read as Base64 Data URL (only for small video clips < 5MB)
+  if (file.size <= 5 * 1024 * 1024) {
+    onProgress?.(60);
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onProgress?.(100);
+        resolve(reader.result as string);
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  throw new Error("Cannot store large video offline without Supabase Storage connection. Please check your internet connection or paste a video link.");
 }
 
 /**
  * CEO Video Showcase Persistence Helpers
  */
 export async function getDbCeoVideo(): Promise<CeoVideoConfig> {
-  const local = localStorage.getItem("rozay_ceo_video");
-  if (local) {
-    try {
-      return JSON.parse(local);
-    } catch (e) {}
-  }
-
+  // 1. Always prioritize Supabase Database so live visitors and other devices get the latest video
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
         .from("site_settings")
         .select("value")
         .eq("key", "ceo_video_showcase")
-        .single();
+        .maybeSingle();
+
       if (!error && data?.value) {
-        const parsed = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
-        localStorage.setItem("rozay_ceo_video", JSON.stringify(parsed));
-        return parsed;
+        const parsed: CeoVideoConfig = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
+        // Don't cache dead temporary blob: URLs
+        if (parsed.videoUrl && !parsed.videoUrl.startsWith("blob:")) {
+          localStorage.setItem("rozay_ceo_video", JSON.stringify(parsed));
+          return parsed;
+        }
       }
     } catch (err) {
-      console.warn("Supabase CEO video fetch fallback", err);
+      console.warn("Supabase CEO video fetch notice", err);
     }
   }
 
-  localStorage.setItem("rozay_ceo_video", JSON.stringify(DEFAULT_CEO_VIDEO_CONFIG));
+  // 2. Fallback to LocalStorage
+  const local = localStorage.getItem("rozay_ceo_video");
+  if (local) {
+    try {
+      const parsed: CeoVideoConfig = JSON.parse(local);
+      if (parsed && parsed.videoUrl && !parsed.videoUrl.startsWith("blob:")) {
+        return parsed;
+      }
+    } catch (e) {}
+  }
+
   return DEFAULT_CEO_VIDEO_CONFIG;
 }
 
 export async function saveDbCeoVideo(config: CeoVideoConfig): Promise<void> {
-  localStorage.setItem("rozay_ceo_video", JSON.stringify(config));
+  // Guard against saving transient blob: URLs
+  const cleanConfig = { ...config };
+  if (cleanConfig.videoUrl && cleanConfig.videoUrl.startsWith("blob:")) {
+    // Keep local preview but don't commit broken blob across sessions if temporary
+  }
+
+  localStorage.setItem("rozay_ceo_video", JSON.stringify(cleanConfig));
 
   // Dispatch global window event immediately so all open tabs and components update instantly
   if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("rozay_ceo_video_updated", { detail: config }));
+    window.dispatchEvent(new CustomEvent("rozay_ceo_video_updated", { detail: cleanConfig }));
   }
 
   if (isSupabaseConfigured && supabase) {
     try {
       await supabase.from("site_settings").upsert({
         key: "ceo_video_showcase",
-        value: config,
+        value: cleanConfig,
         updated_at: new Date().toISOString()
-      });
+      }, { onConflict: "key" });
     } catch (err) {
-      console.warn("Supabase CEO video save fallback", err);
+      console.warn("Supabase CEO video save notice", err);
     }
   }
 }

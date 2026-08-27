@@ -276,29 +276,28 @@ export default function AdminDashboard({
     setVideoUploadError("");
 
     try {
-      // 1. Create immediate preview URL (object URL / Base64) so it reflects immediately
+      // 1. Temporary local preview during upload
       const immediateUrl = URL.createObjectURL(file);
-      const updatedConfig = {
-        ...ceoVideoConfig,
+      setCeoVideoConfig((prev) => ({
+        ...prev,
         videoUrl: immediateUrl
-      };
-      setCeoVideoConfig(updatedConfig);
-      saveDbCeoVideo(updatedConfig); // Auto-sync immediately
+      }));
 
-      // 2. Upload file
+      // 2. Upload file to Supabase Storage
       const uploadedUrl = await uploadCeoVideoFile(file, (percent) => {
         setVideoUploadProgress(percent);
       });
 
       if (uploadedUrl) {
-        const finalConfig = {
+        const finalConfig: CeoVideoConfig = {
           ...ceoVideoConfig,
-          videoUrl: uploadedUrl
+          videoUrl: uploadedUrl,
+          isActive: true
         };
         setCeoVideoConfig(finalConfig);
         await saveDbCeoVideo(finalConfig);
-        setVideoSaveSuccess("Video file uploaded and published to website immediately!");
-        setTimeout(() => setVideoSaveSuccess(""), 4000);
+        setVideoSaveSuccess("Video file uploaded to Cloud Storage and published immediately to website!");
+        setTimeout(() => setVideoSaveSuccess(""), 5000);
       }
     } catch (err: any) {
       console.warn("Video upload error:", err);

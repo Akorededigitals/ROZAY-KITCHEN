@@ -869,7 +869,7 @@ export const DEFAULT_CEO_VIDEO_CONFIG = {
   id: "ceo-video-featured",
   title: "CEO Product Showcase & Live Demonstration",
   subtitle: "Join Founder & CEO Alaekwe Onyebuchi as he walks through the engineering, gold finish, and roll-top durability of our signature chafing dishes.",
-  videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", // Or direct video file
+  videoUrl: "https://kzssompfuuzxauriebql.supabase.co/storage/v1/object/public/product-images/site-assets/rozay_kitchen_hero_1781992826699.jpg", // Default showcase media / video file
   videoType: "url" as const,
   posterUrl: "https://i.ibb.co/gbjcKSgb/Whats-App-Image-2026-08-13-at-17-09-03.jpg",
   featuredProductId: "rzk-prod-1782520037343", // 10 litres chaffing dish

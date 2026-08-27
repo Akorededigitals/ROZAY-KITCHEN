@@ -44,7 +44,7 @@ export default function CeoVideoShowcase({
     // Event listener for instant immediate updates when Admin saves new video link/file
     const handleVideoUpdate = (e: Event) => {
       const customEvent = e as CustomEvent<CeoVideoConfig>;
-      if (customEvent.detail) {
+      if (customEvent.detail && customEvent.detail.videoUrl) {
         setConfig(customEvent.detail);
         setIsPlaying(false); // Reset player to display new video
       } else {
@@ -55,18 +55,28 @@ export default function CeoVideoShowcase({
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "rozay_ceo_video" && e.newValue) {
         try {
-          setConfig(JSON.parse(e.newValue));
-          setIsPlaying(false);
+          const parsed = JSON.parse(e.newValue);
+          if (parsed && parsed.videoUrl) {
+            setConfig(parsed);
+            setIsPlaying(false);
+          }
         } catch (err) {}
       }
     };
 
+    // Re-check database when tab gains focus
+    const handleFocus = () => {
+      loadVideoConfig();
+    };
+
     window.addEventListener("rozay_ceo_video_updated", handleVideoUpdate);
     window.addEventListener("storage", handleStorage);
+    window.addEventListener("focus", handleFocus);
 
     return () => {
       window.removeEventListener("rozay_ceo_video_updated", handleVideoUpdate);
       window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("focus", handleFocus);
     };
   }, []);
 
