@@ -858,3 +858,51 @@ export async function saveDbCeoVideo(config: CeoVideoConfig): Promise<void> {
     }
   }
 }
+
+/**
+ * Real-time subscription to CEO Video Showcase updates from Supabase
+ */
+export function subscribeDbCeoVideo(onUpdate: (config: CeoVideoConfig) => void): () => void {
+  if (!isSupabaseConfigured || !supabase) {
+    return () => {};
+  }
+
+  try {
+    const channel = supabase
+      .channel("site_settings_ceo_video_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "site_settings",
+          filter: "key=eq.ceo_video_showcase"
+        },
+        (payload: any) => {
+          if (payload?.new?.value) {
+            try {
+              const parsed: CeoVideoConfig =
+                typeof payload.new.value === "string"
+                  ? JSON.parse(payload.new.value)
+                  : payload.new.value;
+              if (parsed && parsed.videoUrl && !parsed.videoUrl.startsWith("blob:")) {
+                localStorage.setItem("rozay_ceo_video", JSON.stringify(parsed));
+                onUpdate(parsed);
+              }
+            } catch (err) {
+              console.warn("Error parsing realtime video config payload", err);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase?.removeChannel(channel);
+    };
+  } catch (err) {
+    console.warn("Supabase realtime subscription exception", err);
+    return () => {};
+  }
+}
+

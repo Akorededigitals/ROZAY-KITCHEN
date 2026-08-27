@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion } from "motion/react";
 import { Order } from "../types";
 import { BRAND_INFO } from "../data";
+import { buildOrderWhatsAppMessage, createWhatsAppUrl } from "../lib/whatsapp";
 import { 
   CheckCircle, ArrowLeft, MessageCircle, Mail, Printer, 
   MapPin, Clock, Calendar, Hash, FileText, ChevronRight,
@@ -29,37 +30,10 @@ export default function OrderSuccessView({ order, onReturnToShop }: OrderSuccess
     window.print();
   };
 
-  // Compile the official WhatsApp message
+  // Compile the official WhatsApp message using centralized helper
   const compileWhatsAppText = () => {
-    let msg = `*🚀 ROZAY KITCHEN SHOWROOM ORDER LISTING*\n`;
-    msg += `--------------------------------------------\n`;
-    msg += `*Order Reference:* #${order.id}\n`;
-    msg += `*Fulfillment Date:* ${order.createdAt}\n`;
-    msg += `*Payment Pathway:* ${order.paymentMethod} (${order.paymentStatus})\n`;
-    msg += `--------------------------------------------\n`;
-    msg += `*CUSTOMER PROFILE:*\n`;
-    msg += `• *Name:* ${order.customerName}\n`;
-    msg += `• *Phone:* ${order.customerPhone}\n`;
-    msg += `• *Email:* ${order.customerEmail}\n`;
-    msg += `• *Delivery Dest:* ${order.address}, ${order.city}, ${order.state}\n`;
-    msg += `--------------------------------------------\n`;
-    msg += `*ITEMIZED PRODUCT INVENTORY:*\n`;
-    
-    order.items.forEach((item, index) => {
-      const activePrice = item.product.discountPrice || item.product.price;
-      msg += `${index + 1}. *${item.product.name}* (Qty: ${item.quantity}) - _${formatNaira(activePrice * item.quantity)}_\n`;
-    });
-
-    msg += `--------------------------------------------\n`;
-    msg += `• *Subtotal:* ${formatNaira(order.subtotal)}\n`;
-    msg += `• *Logistics rate:* ${formatNaira(order.deliveryFee)}\n`;
-    msg += `*GRAND TOTAL:* _${formatNaira(order.total)}_\n`;
-    msg += `--------------------------------------------\n`;
-    msg += `*Status:* Showroom booking received. Please confirm dispatcher logistics! Thank you.`;
-
-    const encoded = encodeURIComponent(msg);
-    // Official Rozay Kitchen business helpline number
-    return `https://wa.me/2348123221174?text=${encoded}`;
+    const msg = buildOrderWhatsAppMessage(order);
+    return createWhatsAppUrl(msg);
   };
 
   return (

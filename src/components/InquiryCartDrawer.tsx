@@ -4,6 +4,7 @@ import { X, Trash2, ShoppingBag, Plus, Minus, Send, Clipboard, Check, Sparkles }
 import { InquiryItem } from "../types";
 import { BRAND_INFO } from "../data";
 import { getProductImageUrl } from "../lib/supabase";
+import { buildInquiryWhatsAppMessage, openWhatsAppChat } from "../lib/whatsapp";
 import SafeImage from "./SafeImage";
 
 interface InquiryCartDrawerProps {
@@ -37,34 +38,14 @@ export default function InquiryCartDrawer({
 
   // Generate formatted text message for WhatsApp or copy-paste
   const compileInquiryMessage = () => {
-    let msg = `*ROZAY KITCHEN SHOWROOM ORDER & INQUIRY* 🍳\n`;
-    msg += `--------------------------------------\n\n`;
-    msg += `Hello Rozay Kitchen team, I would like to place an order/request details for the following items:\n\n`;
-
-    let totalSum = 0;
-    cartItems.forEach((item, index) => {
-      const activePrice = item.product.discountPrice || item.product.price;
-      const subTotal = activePrice * item.quantity;
-      totalSum += subTotal;
-
-      msg += `*${index + 1}. ${item.product.name}*\n`;
-      msg += `   • Quantity: ${item.quantity}\n`;
-      msg += `   • Category: ${item.product.category}\n`;
-      msg += `   • Unit Price: ₦${activePrice.toLocaleString()}\n`;
-      msg += `   • Subtotal: ₦${subTotal.toLocaleString()}\n\n`;
-    });
-
-    msg += `--------------------------------------\n`;
-    msg += `*Total Registered Items:* ${totalItemsCount}\n`;
-    msg += `*Estimated Grand Total:* ₦${totalSum.toLocaleString()}\n\n`;
-    
-    msg += `*CUSTOMER DETAILS:*\n`;
-    msg += `• *Name:* ${clientName || "Guest Customer"}\n`;
-    if (clientPhone) msg += `• *Phone Contact:* ${clientPhone}\n`;
-    if (customNotes) msg += `• *My Custom Request/Notes:* ${customNotes}\n\n`;
-
-    msg += `Please confirm order availability and logistics/delivery to my location. Thank you!`;
-    return msg;
+    return buildInquiryWhatsAppMessage(
+      cartItems,
+      {
+        name: clientName,
+        phone: clientPhone,
+        notes: customNotes
+      }
+    );
   };
 
   // Launch WhatsApp callback
@@ -74,11 +55,7 @@ export default function InquiryCartDrawer({
       return;
     }
     const rawMsg = compileInquiryMessage();
-    const encodedText = encodeURIComponent(rawMsg);
-    // Real Business line contact provided by user
-    const phoneNumber = "2348123221174"; 
-    const url = `https://wa.me/${phoneNumber}?text=${encodedText}`;
-    window.open(url, "_blank");
+    openWhatsAppChat(rawMsg);
   };
 
   // Copy message text helper

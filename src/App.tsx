@@ -27,6 +27,7 @@ import { Product, InquiryItem, Order } from "./types";
 import { PRODUCTS_DATA, BRAND_INFO } from "./data";
 import { ChefHat, MapPin, Settings, Instagram, Facebook, Mail, Phone } from "lucide-react";
 import { getDbProducts, addDbProduct, updateDbProduct, deleteDbProduct } from "./lib/supabase";
+import { createWhatsAppUrl } from "./lib/whatsapp";
 
 function ProductDetailRouteWrapper({
   products,
@@ -458,7 +459,7 @@ export default function App() {
               {/* WhatsApp Quick Order button */}
               <div className="pt-2">
                 <a
-                  href="https://wa.me/2348123221174"
+                  href={createWhatsAppUrl("Hello Rozay Kitchen! I am visiting your website and would like to make an order or product inquiry.")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-md cursor-pointer hover:shadow-lg hover:shadow-emerald-600/10"
@@ -513,7 +514,7 @@ export default function App() {
                   </svg>
                 </a>
                 <a
-                  href="https://wa.me/2348123221174"
+                  href={createWhatsAppUrl("Hello Rozay Kitchen! I am contacting you for direct sales and wholesale assistance.")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-10 h-10 rounded-xl bg-stone-900 border border-stone-800 flex items-center justify-center text-stone-300 hover:text-white hover:bg-emerald-500 hover:border-emerald-400 transition-all duration-300 scale-100 hover:scale-110 shadow-xs"

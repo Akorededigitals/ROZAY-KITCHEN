@@ -5,6 +5,8 @@ const HERO_IMAGE = "https://kzssompfuuzxauriebql.supabase.co/storage/v1/object/p
 export const BRAND_INFO = {
   name: "Rozay Kitchen",
   tagline: "Bringing Quality, Style, and Functionality to Every Kitchen.",
+  phone: "+234 812 322 1174",
+  email: "rozaykitchen@gmail.com",
   location: "Idumota, Block N, shop 89,90,91,92 New Pepsi Building, Merciful line. Ebute-ero Market Gorodom, Lagos Island, 101001, Lagos",
   hours: {
     weekdays: "Monday – Saturday: 8:00 AM – 6:00 PM",

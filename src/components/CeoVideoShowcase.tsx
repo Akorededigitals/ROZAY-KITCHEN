@@ -1,72 +1,268 @@
-import { useState, useEffect } from "react";
-import { motion } from "motion/react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { 
   Play, Pause, Volume2, VolumeX, Sparkles, Award, 
-  ShoppingBag, MessageCircle, CheckCircle2, ShieldCheck, 
-  ExternalLink, Video, ChevronRight, Maximize2
+  ShoppingBag, MessageCircle, CheckCircle2, 
+  Video, Maximize2, RefreshCw
 } from "lucide-react";
 import { CeoVideoConfig, Product } from "../types";
-import { getDbCeoVideo, getProductImageUrl } from "../lib/supabase";
+import { getDbCeoVideo, getProductImageUrl, subscribeDbCeoVideo } from "../lib/supabase";
 import { DEFAULT_CEO_VIDEO_CONFIG } from "../data";
+import { createWhatsAppUrl, getSiteUrl } from "../lib/whatsapp";
 import SafeImage from "./SafeImage";
 
-interface CeoVideoShowcaseProps {
+export interface CeoVideoShowcaseProps {
   products: Product[];
+  /** Optional override for the video URL (if provided, takes precedence or falls back to Supabase) */
+  videoUrl?: string;
+  /** Optional override for poster image */
+  posterUrl?: string;
+  /** Optional title override */
+  title?: string;
+  /** Optional subtitle override */
+  subtitle?: string;
+  /** Optional full configuration override */
+  configOverride?: Partial<CeoVideoConfig>;
   onAddToCart: (product: Product, quantity?: number) => void;
   onInstantBuy?: (product: Product) => void;
   onOpenProductDetail?: (product: Product) => void;
 }
 
+type VideoSourceType = "youtube" | "vimeo" | "googledrive" | "loom" | "direct_video" | "image_poster" | "embed";
+
+interface ResolvedVideoSource {
+  type: VideoSourceType;
+  rawUrl: string;
+  embedUrl: string;
+  isDirectVideo: boolean;
+  isIframe: boolean;
+}
+
+/**
+ * Dynamically resolves any arbitrary video URL (YouTube, Vimeo, Google Drive, Loom,
+ * Supabase Storage direct uploads, MP4/WebM/MOV files, or image assets) without hardcoded IDs.
+ */
+function resolveVideoSource(rawUrl: string, autoPlay: boolean = true): ResolvedVideoSource {
+  if (!rawUrl || !rawUrl.trim()) {
+    return {
+      type: "image_poster",
+      rawUrl: "",
+      embedUrl: "",
+      isDirectVideo: false,
+      isIframe: false
+    };
+  }
+
+  const clean = rawUrl.trim();
+  const lower = clean.toLowerCase();
+
+  // 1. Check for Direct Video Files (Supabase Storage, MP4, WebM, MOV, OGG, M4V, Base64/Blob)
+  const isVideoExtension = /\.(mp4|webm|mov|ogg|m4v|mkv|ogv)(\?.*)?$/i.test(clean);
+  const isSupabaseVideoPath = lower.includes("supabase.co/storage") && (lower.includes("video") || isVideoExtension);
+  const isDataOrBlobVideo = lower.startsWith("data:video/") || lower.startsWith("blob:");
+
+  if (isVideoExtension || isSupabaseVideoPath || isDataOrBlobVideo) {
+    return {
+      type: "direct_video",
+      rawUrl: clean,
+      embedUrl: clean,
+      isDirectVideo: true,
+      isIframe: false
+    };
+  }
+
+  // 2. YouTube URLs (Standard watch, Shortened youtu.be, Shorts, Embeds, Live)
+  if (lower.includes("youtube.com") || lower.includes("youtu.be")) {
+    let videoId = "";
+
+    // YouTube Shorts: /shorts/{id}
+    if (lower.includes("/shorts/")) {
+      const parts = clean.split(/\/shorts\//i)[1];
+      videoId = parts?.split("?")[0]?.split("&")[0] || "";
+    }
+    // YouTube Watch: ?v={id}
+    else if (lower.includes("watch")) {
+      const match = clean.match(/[?&]v=([^&#]+)/);
+      videoId = match ? match[1] : "";
+    }
+    // YouTube Shortened: youtu.be/{id}
+    else if (lower.includes("youtu.be/")) {
+      const parts = clean.split(/youtu\.be\//i)[1];
+      videoId = parts?.split("?")[0]?.split("&")[0] || "";
+    }
+    // YouTube Live: /live/{id}
+    else if (lower.includes("/live/")) {
+      const parts = clean.split(/\/live\//i)[1];
+      videoId = parts?.split("?")[0]?.split("&")[0] || "";
+    }
+    // Already an Embed URL: /embed/{id}
+    else if (lower.includes("/embed/")) {
+      const parts = clean.split(/\/embed\//i)[1];
+      videoId = parts?.split("?")[0]?.split("&")[0] || "";
+    }
+
+    if (videoId) {
+      const autoPlayParam = autoPlay ? "1" : "0";
+      const embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${autoPlayParam}&rel=0&modestbranding=1&enablejsapi=1&playsinline=1`;
+      return {
+        type: "youtube",
+        rawUrl: clean,
+        embedUrl,
+        isDirectVideo: false,
+        isIframe: true
+      };
+    }
+  }
+
+  // 3. Vimeo URLs: vimeo.com/{id} or player.vimeo.com/video/{id}
+  if (lower.includes("vimeo.com")) {
+    let vimeoId = "";
+    if (lower.includes("player.vimeo.com/video/")) {
+      const parts = clean.split(/video\//i)[1];
+      vimeoId = parts?.split("?")[0]?.split("&")[0] || "";
+    } else {
+      const parts = clean.split(/vimeo\.com\//i)[1];
+      vimeoId = parts?.split("?")[0]?.split("&")[0] || "";
+    }
+
+    if (vimeoId) {
+      const autoPlayParam = autoPlay ? "1" : "0";
+      const embedUrl = `https://player.vimeo.com/video/${vimeoId}?autoplay=${autoPlayParam}&badge=0&autopause=0`;
+      return {
+        type: "vimeo",
+        rawUrl: clean,
+        embedUrl,
+        isDirectVideo: false,
+        isIframe: true
+      };
+    }
+  }
+
+  // 4. Google Drive Video Files: drive.google.com/file/d/{id}
+  if (lower.includes("drive.google.com")) {
+    if (lower.includes("/file/d/")) {
+      const parts = clean.split(/\/file\/d\//i)[1];
+      const fileId = parts?.split("/")[0]?.split("?")[0] || "";
+      if (fileId) {
+        return {
+          type: "googledrive",
+          rawUrl: clean,
+          embedUrl: `https://drive.google.com/file/d/${fileId}/preview`,
+          isDirectVideo: false,
+          isIframe: true
+        };
+      }
+    }
+  }
+
+  // 5. Loom Screen Recordings: loom.com/share/{id}
+  if (lower.includes("loom.com")) {
+    if (lower.includes("/share/")) {
+      const loomId = clean.split(/\/share\//i)[1]?.split("?")[0] || "";
+      if (loomId) {
+        return {
+          type: "loom",
+          rawUrl: clean,
+          embedUrl: `https://www.loom.com/embed/${loomId}?autoplay=${autoPlay ? "1" : "0"}`,
+          isDirectVideo: false,
+          isIframe: true
+        };
+      }
+    }
+  }
+
+  // 6. Image URL (Hero poster fallback)
+  const isImageExtension = /\.(jpg|jpeg|png|webp|gif|svg|avif)(\?.*)?$/i.test(clean);
+  if (isImageExtension) {
+    return {
+      type: "image_poster",
+      rawUrl: clean,
+      embedUrl: clean,
+      isDirectVideo: false,
+      isIframe: false
+    };
+  }
+
+  // 7. Generic HTTPS Iframe fallback
+  return {
+    type: "embed",
+    rawUrl: clean,
+    embedUrl: clean,
+    isDirectVideo: false,
+    isIframe: true
+  };
+}
+
 export default function CeoVideoShowcase({
   products,
+  videoUrl: propVideoUrl,
+  posterUrl: propPosterUrl,
+  title: propTitle,
+  subtitle: propSubtitle,
+  configOverride,
   onAddToCart,
   onInstantBuy,
   onOpenProductDetail
 }: CeoVideoShowcaseProps) {
-  const [config, setConfig] = useState<CeoVideoConfig>(DEFAULT_CEO_VIDEO_CONFIG);
+  const [dbConfig, setDbConfig] = useState<CeoVideoConfig>(DEFAULT_CEO_VIDEO_CONFIG);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Load configuration and listen for immediate live updates
+  // 1. Fetch live dynamic configuration from Supabase and subscribe to real-time changes
   useEffect(() => {
-    async function loadVideoConfig() {
+    let isMounted = true;
+
+    async function loadConfig() {
       try {
         const data = await getDbCeoVideo();
-        if (data) {
-          setConfig(data);
+        if (data && isMounted) {
+          setDbConfig(data);
         }
       } catch (err) {
-        console.warn("Failed to load CEO video config", err);
+        console.warn("Notice: could not load dynamic CEO video config from Supabase", err);
       }
     }
-    loadVideoConfig();
 
-    // Event listener for instant immediate updates when Admin saves new video link/file
+    loadConfig();
+
+    // Supabase Real-Time database listener
+    const unsubscribeRealtime = subscribeDbCeoVideo((updatedConfig) => {
+      if (isMounted && updatedConfig) {
+        setDbConfig(updatedConfig);
+        setIsPlaying(false);
+        setVideoError(false);
+      }
+    });
+
+    // Window event listener for immediate admin saves
     const handleVideoUpdate = (e: Event) => {
       const customEvent = e as CustomEvent<CeoVideoConfig>;
-      if (customEvent.detail && customEvent.detail.videoUrl) {
-        setConfig(customEvent.detail);
-        setIsPlaying(false); // Reset player to display new video
+      if (customEvent.detail && isMounted) {
+        setDbConfig(customEvent.detail);
+        setIsPlaying(false);
+        setVideoError(false);
       } else {
-        loadVideoConfig();
+        loadConfig();
       }
     };
 
+    // Tab storage event listener
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === "rozay_ceo_video" && e.newValue) {
+      if (e.key === "rozay_ceo_video" && e.newValue && isMounted) {
         try {
           const parsed = JSON.parse(e.newValue);
-          if (parsed && parsed.videoUrl) {
-            setConfig(parsed);
+          if (parsed) {
+            setDbConfig(parsed);
             setIsPlaying(false);
+            setVideoError(false);
           }
         } catch (err) {}
       }
     };
 
-    // Re-check database when tab gains focus
     const handleFocus = () => {
-      loadVideoConfig();
+      loadConfig();
     };
 
     window.addEventListener("rozay_ceo_video_updated", handleVideoUpdate);
@@ -74,82 +270,57 @@ export default function CeoVideoShowcase({
     window.addEventListener("focus", handleFocus);
 
     return () => {
+      isMounted = false;
+      unsubscribeRealtime();
       window.removeEventListener("rozay_ceo_video_updated", handleVideoUpdate);
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener("focus", handleFocus);
     };
   }, []);
 
-  if (!config.isActive) {
+  // 2. Merge dynamic Supabase config with any explicitly passed props
+  const effectiveConfig: CeoVideoConfig = useMemo(() => {
+    return {
+      ...dbConfig,
+      ...configOverride,
+      title: propTitle || configOverride?.title || dbConfig.title || DEFAULT_CEO_VIDEO_CONFIG.title,
+      subtitle: propSubtitle || configOverride?.subtitle || dbConfig.subtitle || DEFAULT_CEO_VIDEO_CONFIG.subtitle,
+      posterUrl: propPosterUrl || configOverride?.posterUrl || dbConfig.posterUrl || DEFAULT_CEO_VIDEO_CONFIG.posterUrl,
+      videoUrl: propVideoUrl || configOverride?.videoUrl || dbConfig.videoUrl || DEFAULT_CEO_VIDEO_CONFIG.videoUrl,
+      isActive: configOverride?.isActive !== undefined ? configOverride.isActive : dbConfig.isActive
+    };
+  }, [dbConfig, configOverride, propTitle, propSubtitle, propPosterUrl, propVideoUrl]);
+
+  // 3. Dynamically resolve video source without hardcoding
+  const resolvedSource = useMemo(() => {
+    return resolveVideoSource(effectiveConfig.videoUrl, true);
+  }, [effectiveConfig.videoUrl]);
+
+  // If section is deactivated by admin, do not render
+  if (!effectiveConfig.isActive) {
     return null;
   }
 
-  // Find the featured product from catalog (or fallback to first chafing dish)
+  // Find the featured product from catalog (or fallback to signature chafing dish)
   const featuredProduct = 
-    products.find((p) => p.id === config.featuredProductId) ||
+    products.find((p) => p.id === effectiveConfig.featuredProductId) ||
     products.find((p) => p.category.toLowerCase().includes("chafing")) ||
     products[0];
 
-  const rawUrl = (config.videoUrl || "").trim();
+  const siteUrl = getSiteUrl();
+  const productPriceFormatted = Number(featuredProduct?.discountPrice || featuredProduct?.price || 140000).toLocaleString();
+  const rawWhatsappMessage = `Hello Rozay Kitchen! 👋\n\nI watched CEO Alaekwe Onyebuchi's executive showcase of the *${featuredProduct?.name || "Signature Chafing Dish"}* (₦${productPriceFormatted}) on your website (${siteUrl}).\n\nI would like to place an order or make a wholesale/delivery inquiry. Please assist me!`;
+  const whatsappUrl = createWhatsAppUrl(rawWhatsappMessage);
 
-  // Helper to determine if video is an iframe embed or direct HTML5 video
-  const isYouTube = rawUrl.includes("youtube.com") || rawUrl.includes("youtu.be");
-  const isVimeo = rawUrl.includes("vimeo.com");
-  const isGoogleDrive = rawUrl.includes("drive.google.com");
-
-  // Format any video URL into an instant high-quality player embed URL
-  const getEmbedUrl = (url: string) => {
-    if (!url) return "";
-    let clean = url.trim();
-
-    // YouTube Shorts (e.g. https://www.youtube.com/shorts/VIDEO_ID)
-    if (clean.includes("/shorts/")) {
-      const parts = clean.split("/shorts/")[1];
-      const videoId = parts?.split("?")[0]?.split("&")[0];
-      return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
-    }
-
-    // YouTube Standard Watch (e.g. https://www.youtube.com/watch?v=VIDEO_ID)
-    if (clean.includes("youtube.com/watch")) {
-      const match = clean.match(/[?&]v=([^&]+)/);
-      const videoId = match ? match[1] : "";
-      if (videoId) {
-        return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+  const handleToggleFullscreen = () => {
+    if (videoRef.current) {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        videoRef.current.requestFullscreen?.();
       }
     }
-
-    // YouTube Shortened (e.g. https://youtu.be/VIDEO_ID)
-    if (clean.includes("youtu.be/")) {
-      const parts = clean.split("youtu.be/")[1];
-      const videoId = parts?.split("?")[0]?.split("&")[0];
-      if (videoId) {
-        return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
-      }
-    }
-
-    // Already an embed URL
-    if (clean.includes("youtube.com/embed/")) {
-      return clean.includes("autoplay=1") ? clean : `${clean}${clean.includes("?") ? "&" : "?"}autoplay=1&rel=0`;
-    }
-
-    // Vimeo (e.g. https://vimeo.com/123456789)
-    if (clean.includes("vimeo.com/") && !clean.includes("player.vimeo.com")) {
-      const id = clean.split("vimeo.com/")[1]?.split("?")[0];
-      return `https://player.vimeo.com/video/${id}?autoplay=1`;
-    }
-
-    // Google Drive (e.g. https://drive.google.com/file/d/ID/view)
-    if (clean.includes("drive.google.com/file/d/")) {
-      const id = clean.split("/file/d/")[1]?.split("/")[0];
-      return `https://drive.google.com/file/d/${id}/preview`;
-    }
-
-    return clean;
   };
-
-  const whatsappMessage = encodeURIComponent(
-    `Hello Rozay Kitchen, I watched CEO Alaekwe Onyebuchi's live showcase video of the ${featuredProduct?.name || "Luxury Chafing Dish"} (₦${Number(featuredProduct?.price || 140000).toLocaleString()}). I would like to place an order or make a wholesale inquiry.`
-  );
 
   return (
     <section id="ceo-showcase" className="py-20 lg:py-28 bg-gradient-to-b from-[#1c1917] via-[#141211] to-[#0c0a09] text-white relative overflow-hidden border-y border-amber-500/20">
@@ -167,48 +338,67 @@ export default function CeoVideoShowcase({
           </div>
 
           <h2 className="font-display font-black text-3xl sm:text-4xl lg:text-5xl text-white tracking-tight leading-tight">
-            {config.title}
+            {effectiveConfig.title}
           </h2>
 
           <p className="text-stone-300 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
-            {config.subtitle}
+            {effectiveConfig.subtitle}
           </p>
         </div>
 
         {/* Video & Featured Product Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
-          {/* Left Column: High-End Video Player (7 Columns) */}
+          {/* Left Column: Dynamic Video Player (7 Columns) */}
           <div className="lg:col-span-7">
             <div className="relative rounded-3xl overflow-hidden bg-stone-900 border-2 border-amber-500/30 shadow-2xl shadow-black/80 group">
               
               {/* Aspect Ratio Container (16:9) */}
               <div className="relative w-full aspect-video bg-black flex items-center justify-center overflow-hidden">
-                {isPlaying ? (
-                  isYouTube || isVimeo || isGoogleDrive ? (
+                {isPlaying && !videoError ? (
+                  resolvedSource.isIframe ? (
                     <iframe
-                      src={getEmbedUrl(config.videoUrl)}
-                      title={config.title}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      src={resolvedSource.embedUrl}
+                      title={effectiveConfig.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
                       className="w-full h-full border-0 absolute inset-0"
                     />
-                  ) : (
+                  ) : resolvedSource.isDirectVideo ? (
                     <video
-                      src={config.videoUrl}
+                      ref={videoRef}
+                      src={resolvedSource.rawUrl}
                       controls
                       autoPlay
                       playsInline
                       muted={isMuted}
+                      onError={() => {
+                        console.warn("Direct video playback encountered error, switching to poster");
+                        setVideoError(true);
+                      }}
                       className="w-full h-full object-cover"
                     />
+                  ) : (
+                    /* Fallback when media is an image/poster */
+                    <div className="relative w-full h-full">
+                      <img
+                        src={resolvedSource.rawUrl || effectiveConfig.posterUrl}
+                        alt={effectiveConfig.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center p-6 text-center">
+                        <Sparkles className="w-10 h-10 text-amber-400 mb-2" />
+                        <h4 className="text-lg font-bold text-white mb-1">{effectiveConfig.title}</h4>
+                        <p className="text-xs text-stone-300 max-w-md">{effectiveConfig.description}</p>
+                      </div>
+                    </div>
                   )
                 ) : (
                   /* Custom Video Poster & Big Play Button */
                   <div className="relative w-full h-full group/poster">
                     <img
-                      src={config.posterUrl || "https://i.ibb.co/gbjcKSgb/Whats-App-Image-2026-08-13-at-17-09-03.jpg"}
-                      alt="Alaekwe Onyebuchi CEO Product Walkthrough"
+                      src={effectiveConfig.posterUrl || "https://i.ibb.co/gbjcKSgb/Whats-App-Image-2026-08-13-at-17-09-03.jpg"}
+                      alt="CEO Product Walkthrough Poster"
                       className="w-full h-full object-cover opacity-80 group-hover/poster:scale-105 transition-transform duration-700"
                     />
 
@@ -218,13 +408,21 @@ export default function CeoVideoShowcase({
                     {/* CEO Badge on Poster */}
                     <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/80 backdrop-blur-md border border-amber-500/40 text-amber-300 px-3 py-1.5 rounded-full text-xs font-mono font-bold">
                       <Sparkles className="w-3 h-3 text-amber-400" />
-                      <span>{config.ceoName} • {config.ceoTitle}</span>
+                      <span>{effectiveConfig.ceoName || "Alaekwe Onyebuchi"} • {effectiveConfig.ceoTitle || "CEO"}</span>
+                    </div>
+
+                    {/* Source Format Indicator */}
+                    <div className="absolute top-4 right-4 bg-black/70 backdrop-blur-md border border-white/10 text-stone-300 px-2.5 py-1 rounded-lg text-[10px] font-mono uppercase tracking-wider">
+                      {resolvedSource.isDirectVideo ? "HD Video File" : resolvedSource.type.toUpperCase()}
                     </div>
 
                     {/* Central Play Button */}
                     <button
                       type="button"
-                      onClick={() => setIsPlaying(true)}
+                      onClick={() => {
+                        setVideoError(false);
+                        setIsPlaying(true);
+                      }}
                       className="absolute inset-0 m-auto w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-amber-600 to-yellow-400 text-stone-950 flex items-center justify-center shadow-2xl shadow-amber-500/50 hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer group/btn"
                       aria-label="Play CEO Video Showcase"
                     >
@@ -250,13 +448,32 @@ export default function CeoVideoShowcase({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {isPlaying && !isYouTube && (
+                  {isPlaying && resolvedSource.isDirectVideo && (
+                    <>
+                      <button
+                        onClick={() => setIsMuted(!isMuted)}
+                        className="p-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-lg transition-colors cursor-pointer"
+                        title={isMuted ? "Unmute" : "Mute"}
+                      >
+                        {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+                      </button>
+                      <button
+                        onClick={handleToggleFullscreen}
+                        className="p-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-lg transition-colors cursor-pointer"
+                        title="Toggle Fullscreen"
+                      >
+                        <Maximize2 className="w-4 h-4 text-stone-300" />
+                      </button>
+                    </>
+                  )}
+                  {isPlaying && (
                     <button
-                      onClick={() => setIsMuted(!isMuted)}
-                      className="p-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-lg transition-colors cursor-pointer"
-                      title={isMuted ? "Unmute" : "Mute"}
+                      onClick={() => setIsPlaying(false)}
+                      className="p-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-lg transition-colors cursor-pointer text-[11px] font-mono flex items-center gap-1"
+                      title="Reset Player"
                     >
-                      {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Reset</span>
                     </button>
                   )}
                   <span className="text-stone-500 font-mono text-[11px]">1080p Ultra-HD</span>
@@ -279,11 +496,11 @@ export default function CeoVideoShowcase({
               </div>
 
               <p className="text-sm text-stone-300 mb-5 leading-relaxed">
-                {config.description}
+                {effectiveConfig.description}
               </p>
 
               <div className="space-y-3">
-                {config.talkingPoints.map((point, index) => (
+                {(effectiveConfig.talkingPoints || []).map((point, index) => (
                   <div key={index} className="flex items-start gap-3 text-xs sm:text-sm text-stone-200">
                     <div className="p-1 rounded-full bg-amber-500/20 text-amber-400 shrink-0 mt-0.5 border border-amber-500/30">
                       <CheckCircle2 className="w-3.5 h-3.5" />
@@ -302,7 +519,10 @@ export default function CeoVideoShowcase({
                 </div>
 
                 <div className="flex items-center gap-4 sm:gap-5 mb-5">
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-stone-800 border border-stone-700 overflow-hidden shrink-0 shadow-md">
+                  <div 
+                    onClick={() => onOpenProductDetail?.(featuredProduct)}
+                    className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-stone-800 border border-stone-700 overflow-hidden shrink-0 shadow-md cursor-pointer hover:opacity-90 transition-opacity"
+                  >
                     <SafeImage
                       src={getProductImageUrl(featuredProduct.image)}
                       alt={featuredProduct.name}
@@ -315,7 +535,10 @@ export default function CeoVideoShowcase({
                     <span className="text-[10px] font-mono text-amber-400 uppercase font-bold tracking-wider block mb-1">
                       {featuredProduct.category}
                     </span>
-                    <h4 className="text-base sm:text-lg font-bold text-white truncate mb-1.5">
+                    <h4 
+                      onClick={() => onOpenProductDetail?.(featuredProduct)}
+                      className="text-base sm:text-lg font-bold text-white truncate mb-1.5 hover:text-amber-400 transition-colors cursor-pointer"
+                    >
                       {featuredProduct.name}
                     </h4>
                     <div className="flex items-baseline gap-2">
@@ -335,7 +558,13 @@ export default function CeoVideoShowcase({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => onAddToCart(featuredProduct, 1)}
+                    onClick={() => {
+                      if (onInstantBuy) {
+                        onInstantBuy(featuredProduct);
+                      } else {
+                        onAddToCart(featuredProduct, 1);
+                      }
+                    }}
                     className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-stone-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02] cursor-pointer"
                   >
                     <ShoppingBag className="w-4 h-4" />
@@ -343,7 +572,7 @@ export default function CeoVideoShowcase({
                   </button>
 
                   <a
-                    href={`https://wa.me/2348083832047?text=${whatsappMessage}`}
+                    href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30 transition-all hover:scale-[1.02] cursor-pointer"

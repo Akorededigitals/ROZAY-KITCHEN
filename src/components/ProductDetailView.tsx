@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Product, Review } from "../types";
 import { getProductImageUrl } from "../lib/supabase";
+import { buildProductInquiryWhatsAppMessage, createWhatsAppUrl } from "../lib/whatsapp";
 import SafeImage from "./SafeImage";
 import { 
   ArrowLeft, Star, ShoppingBag, Truck, ShieldCheck, 
@@ -403,12 +404,23 @@ export default function ProductDetailView({
                 </button>
               </div>
 
+              {/* Direct WhatsApp Product Inquiry */}
+              <a
+                href={createWhatsAppUrl(buildProductInquiryWhatsAppMessage(product))}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4 fill-white" />
+                <span>Inquire on WhatsApp for Bulk / Wholesale</span>
+              </a>
+
               {/* Express share */}
               <div className="flex items-center justify-between text-xs py-2 bg-stone-50 px-3.5 rounded-xl border border-gray-150">
-                <span className="text-gray-500">Need immediate wholesale pricing or advice?</span>
+                <span className="text-gray-500">Share with family or colleagues:</span>
                 <button
                   onClick={handleCopyLink}
-                  className="text-brand-600 font-bold hover:underline"
+                  className="text-brand-600 font-bold hover:underline cursor-pointer"
                 >
                   {copiedLink ? "Link Copied!" : "Share Product"}
                 </button>

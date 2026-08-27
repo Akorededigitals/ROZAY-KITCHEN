@@ -8,6 +8,7 @@ import {
 import { BRAND_INFO, CHOOSE_US_POINTS, PRODUCTS_DATA } from "../data";
 import { ContactForm } from "../types";
 import { addDbSubmission } from "../lib/supabase";
+import { buildGeneralContactWhatsAppMessage, createWhatsAppUrl } from "../lib/whatsapp";
 import SafeImage from "./SafeImage";
 import toast from "react-hot-toast";
 
@@ -683,9 +684,9 @@ Sent via Rozay Kitchen Lagos Web Platform`;
                 </button>
 
                 <a
-                  href={`https://api.whatsapp.com/send?phone=2348123221174&text=${encodeURIComponent(
-                    `Hello Rozay Kitchen Sales Team! 👋\n\nI have an inquiry from your contact page:\n\nName: ${formData.name || "Customer"}\nMessage: ${formData.message || "I would like to inquire about cookware products and pricing."}`
-                  )}`}
+                  href={createWhatsAppUrl(
+                    buildGeneralContactWhatsAppMessage(formData.name, formData.message, formData.phone)
+                  )}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full sm:w-auto px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition-colors tracking-wide cursor-pointer flex items-center justify-center gap-2 shadow-xs"

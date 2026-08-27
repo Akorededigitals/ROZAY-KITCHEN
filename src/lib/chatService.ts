@@ -1,4 +1,5 @@
 import { BRAND_INFO, PRODUCTS_DATA } from "../data";
+import { buildAgentTransferWhatsAppMessage, createWhatsAppUrl } from "./whatsapp";
 
 export interface ChatMessage {
   id: string;
@@ -134,18 +135,6 @@ export async function sendMessageToAI(
 }
 
 export function generateWhatsAppTransferUrl(userMessage: string, assistantMessage?: string): string {
-  const phoneNumber = "2348123221174"; // Rozay Kitchen official line
-  
-  let text = `Hello Rozay Kitchen Sales Team! 👋\n\nI was chatting with your AI assistant on your website and would like human agent support.`;
-  
-  if (userMessage) {
-    text += `\n\n*My Question:* "${userMessage.trim()}"`;
-  }
-  if (assistantMessage) {
-    text += `\n\n*AI Summary:* "${assistantMessage.trim().slice(0, 200)}..."`;
-  }
-  
-  text += `\n\nPlease connect me with an agent to assist me. Thank you!`;
-
-  return `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(text)}`;
+  const text = buildAgentTransferWhatsAppMessage(userMessage, assistantMessage);
+  return createWhatsAppUrl(text);
 }
