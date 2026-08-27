@@ -55,12 +55,12 @@ function resolveVideoSource(rawUrl: string, autoPlay: boolean = true): ResolvedV
   const clean = rawUrl.trim();
   const lower = clean.toLowerCase();
 
-  // 1. Check for Direct Video Files (Supabase Storage, MP4, WebM, MOV, OGG, M4V, Base64/Blob)
-  const isVideoExtension = /\.(mp4|webm|mov|ogg|m4v|mkv|ogv)(\?.*)?$/i.test(clean);
-  const isSupabaseVideoPath = lower.includes("supabase.co/storage") && (lower.includes("video") || isVideoExtension);
+  // 1. Check for Direct Video Files (Supabase Storage, MP4, WebM, MOV, OGG, M4V, Base64/Blob, Cloudinary, S3)
+  const isVideoExtension = /\.(mp4|webm|mov|ogg|m4v|mkv|ogv|avi|3gp|quicktime)(\?.*)?$/i.test(clean);
+  const isStorageVideoPath = (lower.includes("supabase.co/storage") || lower.includes("firebasestorage") || lower.includes("cloudinary")) && !(/\.(jpg|jpeg|png|webp|gif|svg)$/i.test(clean.split("?")[0]));
   const isDataOrBlobVideo = lower.startsWith("data:video/") || lower.startsWith("blob:");
 
-  if (isVideoExtension || isSupabaseVideoPath || isDataOrBlobVideo) {
+  if (isVideoExtension || isStorageVideoPath || isDataOrBlobVideo || lower.includes("ceo-video")) {
     return {
       type: "direct_video",
       rawUrl: clean,
@@ -137,20 +137,25 @@ function resolveVideoSource(rawUrl: string, autoPlay: boolean = true): ResolvedV
     }
   }
 
-  // 4. Google Drive Video Files: drive.google.com/file/d/{id}
+  // 4. Google Drive Video Files: drive.google.com/file/d/{id} or drive.google.com/open?id={id}
   if (lower.includes("drive.google.com")) {
+    let fileId = "";
     if (lower.includes("/file/d/")) {
       const parts = clean.split(/\/file\/d\//i)[1];
-      const fileId = parts?.split("/")[0]?.split("?")[0] || "";
-      if (fileId) {
-        return {
-          type: "googledrive",
-          rawUrl: clean,
-          embedUrl: `https://drive.google.com/file/d/${fileId}/preview`,
-          isDirectVideo: false,
-          isIframe: true
-        };
-      }
+      fileId = parts?.split("/")[0]?.split("?")[0] || "";
+    } else if (lower.includes("id=")) {
+      const match = clean.match(/[?&]id=([^&#]+)/);
+      fileId = match ? match[1] : "";
+    }
+
+    if (fileId) {
+      return {
+        type: "googledrive",
+        rawUrl: clean,
+        embedUrl: `https://drive.google.com/file/d/${fileId}/preview`,
+        isDirectVideo: false,
+        isIframe: true
+      };
     }
   }
 
@@ -182,13 +187,13 @@ function resolveVideoSource(rawUrl: string, autoPlay: boolean = true): ResolvedV
     };
   }
 
-  // 7. Generic HTTPS Iframe fallback
+  // 7. Generic HTTPS Video / Embed fallback
   return {
-    type: "embed",
+    type: "direct_video",
     rawUrl: clean,
     embedUrl: clean,
-    isDirectVideo: false,
-    isIframe: true
+    isDirectVideo: true,
+    isIframe: false
   };
 }
 
@@ -355,8 +360,8 @@ export default function CeoVideoShowcase({
               
               {/* Aspect Ratio Container (16:9) */}
               <div className="relative w-full aspect-video bg-black flex items-center justify-center overflow-hidden">
-                {isPlaying && !videoError ? (
-                  resolvedSource.isIframe ? (
+                {resolvedSource.isIframe ? (
+                  isPlaying ? (
                     <iframe
                       src={resolvedSource.embedUrl}
                       title={effectiveConfig.title}
@@ -364,77 +369,110 @@ export default function CeoVideoShowcase({
                       allowFullScreen
                       className="w-full h-full border-0 absolute inset-0"
                     />
-                  ) : resolvedSource.isDirectVideo ? (
+                  ) : (
+                    /* Video Poster with Play Button for Iframe embeds */
+                    <div className="relative w-full h-full group/poster">
+                      <img
+                        src={effectiveConfig.posterUrl || "https://i.ibb.co/gbjcKSgb/Whats-App-Image-2026-08-13-at-17-09-03.jpg"}
+                        alt="CEO Product Walkthrough Poster"
+                        className="w-full h-full object-cover opacity-85 group-hover/poster:scale-105 transition-transform duration-700"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+                      
+                      <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/80 backdrop-blur-md border border-amber-500/40 text-amber-300 px-3 py-1.5 rounded-full text-xs font-mono font-bold">
+                        <Sparkles className="w-3 h-3 text-amber-400" />
+                        <span>{effectiveConfig.ceoName || "Alaekwe Onyebuchi"} • {effectiveConfig.ceoTitle || "CEO"}</span>
+                      </div>
+
+                      <div className="absolute top-4 right-4 bg-black/70 backdrop-blur-md border border-white/10 text-stone-300 px-2.5 py-1 rounded-lg text-[10px] font-mono uppercase tracking-wider">
+                        {resolvedSource.type.toUpperCase()}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setVideoError(false);
+                          setIsPlaying(true);
+                        }}
+                        className="absolute inset-0 m-auto w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-amber-600 to-yellow-400 text-stone-950 flex items-center justify-center shadow-2xl shadow-amber-500/50 hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer group/btn"
+                        aria-label="Play CEO Video Showcase"
+                      >
+                        <Play className="w-8 h-8 sm:w-10 sm:h-10 fill-current ml-1 group-hover/btn:scale-110 transition-transform" />
+                      </button>
+
+                      <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs text-stone-300 bg-black/60 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/10">
+                        <span className="font-semibold text-white truncate max-w-[70%]">
+                          Live Demonstration: {featuredProduct?.name || "Luxury Chafing Dish"}
+                        </span>
+                        <span className="font-mono text-amber-400 font-bold shrink-0">Click to Play</span>
+                      </div>
+                    </div>
+                  )
+                ) : resolvedSource.isDirectVideo ? (
+                  /* Direct HTML5 Video Player (MP4, WebM, Supabase Storage, Blob) */
+                  <div className="relative w-full h-full bg-black flex items-center justify-center group/direct">
                     <video
                       ref={videoRef}
                       src={resolvedSource.rawUrl}
+                      poster={effectiveConfig.posterUrl}
                       controls
-                      autoPlay
                       playsInline
+                      preload="auto"
                       muted={isMuted}
+                      onPlay={() => setIsPlaying(true)}
+                      onPause={() => setIsPlaying(false)}
                       onError={() => {
-                        console.warn("Direct video playback encountered error, switching to poster");
+                        console.warn("Direct video playback encountered error");
                         setVideoError(true);
                       }}
                       className="w-full h-full object-cover"
                     />
-                  ) : (
-                    /* Fallback when media is an image/poster */
-                    <div className="relative w-full h-full">
-                      <img
-                        src={resolvedSource.rawUrl || effectiveConfig.posterUrl}
-                        alt={effectiveConfig.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center p-6 text-center">
-                        <Sparkles className="w-10 h-10 text-amber-400 mb-2" />
-                        <h4 className="text-lg font-bold text-white mb-1">{effectiveConfig.title}</h4>
-                        <p className="text-xs text-stone-300 max-w-md">{effectiveConfig.description}</p>
+
+                    {/* Prominent Center Play Button Overlay when video is paused */}
+                    {!isPlaying && !videoError && (
+                      <div 
+                        onClick={() => {
+                          if (videoRef.current) {
+                            videoRef.current.play().catch(() => {});
+                          }
+                          setIsPlaying(true);
+                        }}
+                        className="absolute inset-0 bg-black/30 backdrop-blur-[2px] flex items-center justify-center cursor-pointer transition-opacity"
+                      >
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-amber-600 to-yellow-400 text-stone-950 flex items-center justify-center shadow-2xl shadow-amber-500/50 hover:scale-110 active:scale-95 transition-all duration-300">
+                          <Play className="w-8 h-8 sm:w-10 sm:h-10 fill-current ml-1" />
+                        </div>
+                        
+                        <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/80 backdrop-blur-md border border-amber-500/40 text-amber-300 px-3 py-1.5 rounded-full text-xs font-mono font-bold">
+                          <Sparkles className="w-3 h-3 text-amber-400" />
+                          <span>{effectiveConfig.ceoName || "Alaekwe Onyebuchi"} • {effectiveConfig.ceoTitle || "CEO"}</span>
+                        </div>
+
+                        <div className="absolute top-4 right-4 bg-emerald-600/90 text-white border border-emerald-400/40 px-2.5 py-1 rounded-lg text-[10px] font-mono uppercase tracking-wider font-bold">
+                          Live Video File
+                        </div>
+
+                        <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs text-stone-300 bg-black/70 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/10">
+                          <span className="font-semibold text-white truncate max-w-[70%]">
+                            CEO Demonstration: {featuredProduct?.name || "Luxury Chafing Dish"}
+                          </span>
+                          <span className="font-mono text-amber-400 font-bold shrink-0">Click to Play</span>
+                        </div>
                       </div>
-                    </div>
-                  )
+                    )}
+                  </div>
                 ) : (
-                  /* Custom Video Poster & Big Play Button */
-                  <div className="relative w-full h-full group/poster">
+                  /* Fallback for Image/Poster media */
+                  <div className="relative w-full h-full">
                     <img
-                      src={effectiveConfig.posterUrl || "https://i.ibb.co/gbjcKSgb/Whats-App-Image-2026-08-13-at-17-09-03.jpg"}
-                      alt="CEO Product Walkthrough Poster"
-                      className="w-full h-full object-cover opacity-80 group-hover/poster:scale-105 transition-transform duration-700"
+                      src={resolvedSource.rawUrl || effectiveConfig.posterUrl || "https://i.ibb.co/gbjcKSgb/Whats-App-Image-2026-08-13-at-17-09-03.jpg"}
+                      alt={effectiveConfig.title}
+                      className="w-full h-full object-cover"
                     />
-
-                    {/* Dark gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-
-                    {/* CEO Badge on Poster */}
-                    <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/80 backdrop-blur-md border border-amber-500/40 text-amber-300 px-3 py-1.5 rounded-full text-xs font-mono font-bold">
-                      <Sparkles className="w-3 h-3 text-amber-400" />
-                      <span>{effectiveConfig.ceoName || "Alaekwe Onyebuchi"} • {effectiveConfig.ceoTitle || "CEO"}</span>
-                    </div>
-
-                    {/* Source Format Indicator */}
-                    <div className="absolute top-4 right-4 bg-black/70 backdrop-blur-md border border-white/10 text-stone-300 px-2.5 py-1 rounded-lg text-[10px] font-mono uppercase tracking-wider">
-                      {resolvedSource.isDirectVideo ? "HD Video File" : resolvedSource.type.toUpperCase()}
-                    </div>
-
-                    {/* Central Play Button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setVideoError(false);
-                        setIsPlaying(true);
-                      }}
-                      className="absolute inset-0 m-auto w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-amber-600 to-yellow-400 text-stone-950 flex items-center justify-center shadow-2xl shadow-amber-500/50 hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer group/btn"
-                      aria-label="Play CEO Video Showcase"
-                    >
-                      <Play className="w-8 h-8 sm:w-10 sm:h-10 fill-current ml-1 group-hover/btn:scale-110 transition-transform" />
-                    </button>
-
-                    {/* Bottom Video Info Overlay */}
-                    <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs text-stone-300 bg-black/60 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/10">
-                      <span className="font-semibold text-white truncate max-w-[70%]">
-                        Live Demonstration: {featuredProduct?.name || "Luxury Chafing Dish"}
-                      </span>
-                      <span className="font-mono text-amber-400 font-bold shrink-0">Click to Watch</span>
+                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center p-6 text-center">
+                      <Sparkles className="w-10 h-10 text-amber-400 mb-2" />
+                      <h4 className="text-lg font-bold text-white mb-1">{effectiveConfig.title}</h4>
+                      <p className="text-xs text-stone-300 max-w-md">{effectiveConfig.description}</p>
                     </div>
                   </div>
                 )}

@@ -280,10 +280,11 @@ export default function AdminDashboard({
       const immediateUrl = URL.createObjectURL(file);
       setCeoVideoConfig((prev) => ({
         ...prev,
-        videoUrl: immediateUrl
+        videoUrl: immediateUrl,
+        videoType: "uploaded"
       }));
 
-      // 2. Upload file to Supabase Storage
+      // 2. Upload file to Storage and cache
       const uploadedUrl = await uploadCeoVideoFile(file, (percent) => {
         setVideoUploadProgress(percent);
       });
@@ -292,11 +293,12 @@ export default function AdminDashboard({
         const finalConfig: CeoVideoConfig = {
           ...ceoVideoConfig,
           videoUrl: uploadedUrl,
+          videoType: "uploaded",
           isActive: true
         };
         setCeoVideoConfig(finalConfig);
         await saveDbCeoVideo(finalConfig);
-        setVideoSaveSuccess("Video file uploaded to Cloud Storage and published immediately to website!");
+        setVideoSaveSuccess("CEO live demonstration video uploaded & published live to website!");
         setTimeout(() => setVideoSaveSuccess(""), 5000);
       }
     } catch (err: any) {

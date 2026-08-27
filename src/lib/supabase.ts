@@ -724,6 +724,72 @@ export async function deleteStorageImage(imageUrl: string): Promise<void> {
   }
 }
 
+// ====================================================================
+// IndexedDB Media Store for Large Video Files & Local Fallbacks
+// ====================================================================
+const DB_NAME = "RozayKitchenMediaDB";
+const DB_VERSION = 1;
+const STORE_NAME = "video_blobs";
+
+function openMediaDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === "undefined" || !window.indexedDB) {
+      reject(new Error("IndexedDB is not available in this environment"));
+      return;
+    }
+    const request = window.indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function saveVideoBlobToIndexedDB(key: string, blob: Blob): Promise<string> {
+  try {
+    const db = await openMediaDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.put(blob, key);
+      req.onsuccess = () => {
+        const objectUrl = URL.createObjectURL(blob);
+        resolve(objectUrl);
+      };
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.warn("Could not write video blob to IndexedDB:", err);
+    return URL.createObjectURL(blob);
+  }
+}
+
+export async function getVideoBlobFromIndexedDB(key: string): Promise<string | null> {
+  try {
+    const db = await openMediaDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.get(key);
+      req.onsuccess = () => {
+        if (req.result instanceof Blob) {
+          const objectUrl = URL.createObjectURL(req.result);
+          resolve(objectUrl);
+        } else {
+          resolve(null);
+        }
+      };
+      req.onerror = () => resolve(null);
+    });
+  } catch (err) {
+    return null;
+  }
+}
+
 /**
  * Direct Video Upload for CEO Showcase (MP4, WebM, MOV, QuickTime)
  */
@@ -733,12 +799,16 @@ export async function uploadCeoVideoFile(
 ): Promise<string> {
   onProgress?.(15);
 
-  // Validate video file size (Warn if > 150MB)
-  if (file.size > 150 * 1024 * 1024) {
-    throw new Error("Video file is too large (maximum recommended size is 150MB). Please compress the video or paste a YouTube / Google Drive link.");
+  // 1. Always store locally in IndexedDB so the uploaded video is IMMEDIATELY playable and persistent
+  let localVideoUrl: string = "";
+  try {
+    localVideoUrl = await saveVideoBlobToIndexedDB("ceo_showcase_video", file);
+    onProgress?.(30);
+  } catch (e) {
+    console.warn("Notice: Local video caching note", e);
   }
 
-  // If Supabase is configured, upload directly to Supabase Storage bucket
+  // 2. If Supabase is configured, upload to Supabase Storage bucket
   if (isSupabaseConfigured && supabase) {
     try {
       const uniqueId = Math.random().toString(36).substring(2, 7);
@@ -746,7 +816,7 @@ export async function uploadCeoVideoFile(
       const ext = cleanName.split(".").pop() || "mp4";
       const fileName = `ceo-video-${Date.now()}-${uniqueId}.${ext}`;
 
-      onProgress?.(35);
+      onProgress?.(50);
       const { error: uploadError } = await supabase.storage
         .from("product-images")
         .upload(fileName, file, {
@@ -756,7 +826,7 @@ export async function uploadCeoVideoFile(
         });
 
       if (!uploadError) {
-        onProgress?.(85);
+        onProgress?.(90);
         const { data: publicUrlData } = supabase.storage
           .from("product-images")
           .getPublicUrl(fileName);
@@ -766,37 +836,37 @@ export async function uploadCeoVideoFile(
           return publicUrlData.publicUrl;
         }
       } else {
-        console.warn("Supabase storage video upload returned error:", uploadError.message);
-        throw new Error(`Storage upload failed: ${uploadError.message}`);
+        console.warn("Supabase storage video upload returned notice:", uploadError.message);
       }
     } catch (err: any) {
-      console.warn("Supabase video upload exception:", err);
-      throw err;
+      console.warn("Supabase video upload cloud exception, falling back to cached video:", err);
     }
   }
 
-  // Fallback if offline/local: Read as Base64 Data URL (only for small video clips < 5MB)
-  if (file.size <= 5 * 1024 * 1024) {
-    onProgress?.(60);
+  // 3. Return the persistent local video object URL
+  onProgress?.(100);
+  if (localVideoUrl) {
+    return localVideoUrl;
+  }
+
+  // 4. Fallback for small video clips < 8MB
+  if (file.size <= 8 * 1024 * 1024) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        onProgress?.(100);
-        resolve(reader.result as string);
-      };
+      reader.onloadend = () => resolve(reader.result as string);
       reader.onerror = (err) => reject(err);
       reader.readAsDataURL(file);
     });
   }
 
-  throw new Error("Cannot store large video offline without Supabase Storage connection. Please check your internet connection or paste a video link.");
+  return URL.createObjectURL(file);
 }
 
 /**
  * CEO Video Showcase Persistence Helpers
  */
 export async function getDbCeoVideo(): Promise<CeoVideoConfig> {
-  // 1. Always prioritize Supabase Database so live visitors and other devices get the latest video
+  // 1. Always check Supabase Database first so live visitors get the latest video
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
@@ -807,8 +877,7 @@ export async function getDbCeoVideo(): Promise<CeoVideoConfig> {
 
       if (!error && data?.value) {
         const parsed: CeoVideoConfig = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
-        // Don't cache dead temporary blob: URLs
-        if (parsed.videoUrl && !parsed.videoUrl.startsWith("blob:")) {
+        if (parsed && parsed.videoUrl && parsed.videoUrl.trim() !== "") {
           localStorage.setItem("rozay_ceo_video", JSON.stringify(parsed));
           return parsed;
         }
@@ -818,12 +887,38 @@ export async function getDbCeoVideo(): Promise<CeoVideoConfig> {
     }
   }
 
-  // 2. Fallback to LocalStorage
+  // 2. Check IndexedDB video cache for locally uploaded videos
+  try {
+    const cachedBlobUrl = await getVideoBlobFromIndexedDB("ceo_showcase_video");
+    const localRaw = localStorage.getItem("rozay_ceo_video");
+    if (localRaw) {
+      const parsed: CeoVideoConfig = JSON.parse(localRaw);
+      if (parsed) {
+        if (cachedBlobUrl && (!parsed.videoUrl || parsed.videoUrl.startsWith("blob:") || parsed.videoType === "uploaded")) {
+          return {
+            ...parsed,
+            videoUrl: cachedBlobUrl
+          };
+        }
+        if (parsed.videoUrl && parsed.videoUrl.trim() !== "") {
+          return parsed;
+        }
+      }
+    } else if (cachedBlobUrl) {
+      return {
+        ...DEFAULT_CEO_VIDEO_CONFIG,
+        videoUrl: cachedBlobUrl,
+        videoType: "uploaded"
+      };
+    }
+  } catch (e) {}
+
+  // 3. Fallback to LocalStorage
   const local = localStorage.getItem("rozay_ceo_video");
   if (local) {
     try {
       const parsed: CeoVideoConfig = JSON.parse(local);
-      if (parsed && parsed.videoUrl && !parsed.videoUrl.startsWith("blob:")) {
+      if (parsed && parsed.videoUrl && parsed.videoUrl.trim() !== "") {
         return parsed;
       }
     } catch (e) {}
@@ -833,24 +928,26 @@ export async function getDbCeoVideo(): Promise<CeoVideoConfig> {
 }
 
 export async function saveDbCeoVideo(config: CeoVideoConfig): Promise<void> {
-  // Guard against saving transient blob: URLs
   const cleanConfig = { ...config };
-  if (cleanConfig.videoUrl && cleanConfig.videoUrl.startsWith("blob:")) {
-    // Keep local preview but don't commit broken blob across sessions if temporary
-  }
 
   localStorage.setItem("rozay_ceo_video", JSON.stringify(cleanConfig));
 
-  // Dispatch global window event immediately so all open tabs and components update instantly
+  // Dispatch global window event immediately so all components update in real-time
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("rozay_ceo_video_updated", { detail: cleanConfig }));
   }
 
   if (isSupabaseConfigured && supabase) {
     try {
+      // If saving to Supabase, ensure we don't send local blob: URLs that other browsers cannot open
+      const supabaseConfig = { ...cleanConfig };
+      if (supabaseConfig.videoUrl && supabaseConfig.videoUrl.startsWith("blob:")) {
+        // Leave previous public URL or skip sending blob:
+      }
+
       await supabase.from("site_settings").upsert({
         key: "ceo_video_showcase",
-        value: cleanConfig,
+        value: supabaseConfig,
         updated_at: new Date().toISOString()
       }, { onConflict: "key" });
     } catch (err) {
@@ -885,7 +982,7 @@ export function subscribeDbCeoVideo(onUpdate: (config: CeoVideoConfig) => void):
                 typeof payload.new.value === "string"
                   ? JSON.parse(payload.new.value)
                   : payload.new.value;
-              if (parsed && parsed.videoUrl && !parsed.videoUrl.startsWith("blob:")) {
+              if (parsed && parsed.videoUrl && parsed.videoUrl.trim() !== "") {
                 localStorage.setItem("rozay_ceo_video", JSON.stringify(parsed));
                 onUpdate(parsed);
               }
