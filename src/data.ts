@@ -11,6 +11,7 @@ export const BRAND_INFO = {
     sunday: "Sunday: Closed"
   },
   socials: {
+    facebook: "https://www.facebook.com/share/1chGzn65bp/",
     instagram: "https://www.instagram.com/rozay_kitchen_",
     tiktok: "https://www.tiktok.com/@rozaykitchen860"
   },

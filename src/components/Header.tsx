@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { ChefHat, Phone, MapPin, Clock, Instagram, Send, Menu, X, ShoppingBag, Settings, Lock, ChevronDown } from "lucide-react";
+import { ChefHat, Phone, MapPin, Clock, Instagram, Facebook, Send, Menu, X, ShoppingBag, Settings, Lock, ChevronDown } from "lucide-react";
 import { BRAND_INFO } from "../data";
 
 interface HeaderProps {
@@ -33,10 +33,12 @@ export default function Header({ cartCount, onOpenCart, onOpenAdmin, currentView
       label: "Shop", 
       action: () => onNavigate("products"),
       subcategories: [
-        { label: "Chafing Dishes", action: () => onNavigate("category/chafing-dishes") },
-        { label: "Cooking Pots", action: () => onNavigate("category/cooking-pots") },
-        { label: "Catering Equipment", action: () => onNavigate("category/catering-equipment") },
+        { label: "Luxury Chafing Dishes", action: () => onNavigate("category/chafing-dishes") },
+        { label: "Premium Cooking Pots", action: () => onNavigate("category/cooking-pots") },
+        { label: "Cookware Sets", action: () => onNavigate("category/cookware-sets") },
         { label: "Coolers & Storage", action: () => onNavigate("category/coolers-storage") },
+        { label: "Utensils & Accessories", action: () => onNavigate("category/utensils-accessories") },
+        { label: "Catering Equipment", action: () => onNavigate("category/catering-equipment") },
         { label: "Kitchen Appliances", action: () => onNavigate("category/kitchen-appliances") },
       ]
     },
@@ -247,20 +249,28 @@ export default function Header({ cartCount, onOpenCart, onOpenAdmin, currentView
 
           <hr className="border-gray-100 my-1" />
 
-          <div className="flex gap-4 px-3 mt-1">
+          <div className="flex flex-wrap gap-4 px-3 mt-1">
+            <a
+              href={BRAND_INFO.socials.facebook}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#1877F2] transition-colors"
+            >
+              <Facebook className="w-4 h-4 text-[#1877F2]" /> Facebook
+            </a>
             <a
               href={BRAND_INFO.socials.instagram}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-gray-600 hover:text-brand-600"
+              className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-pink-600 transition-colors"
             >
-              <Instagram className="w-4 h-4" /> Instagram
+              <Instagram className="w-4 h-4 text-pink-600" /> Instagram
             </a>
             <a
               href={BRAND_INFO.socials.tiktok}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-gray-600 hover:text-brand-600"
+              className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-black transition-colors"
             >
               <Send className="w-4 h-4" /> TikTok
             </a>

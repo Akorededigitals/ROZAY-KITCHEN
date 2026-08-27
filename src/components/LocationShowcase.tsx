@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
-  MapPin, Clock, Instagram, Send, Mail, Phone, ShoppingBag, 
+  MapPin, Clock, Instagram, Facebook, Send, Mail, Phone, ShoppingBag, 
   ShieldCheck, HeartHandshake, CheckCircle, Store, ChevronLeft, 
   ChevronRight, Maximize2, X, Sparkles, Eye, Play, Pause
 } from "lucide-react";
@@ -455,14 +455,23 @@ Sent via Rozay Kitchen Lagos Web Platform`;
               </div>
 
               {/* Verified Handles */}
-              <div className="pt-4 border-t border-gray-150 flex items-center justify-between">
+              <div className="pt-4 border-t border-gray-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <span className="text-xs font-mono font-bold text-gray-400">CONNECT ONLINE:</span>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href={BRAND_INFO.socials.facebook}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-stone-100 hover:bg-blue-50 text-gray-700 hover:text-[#1877F2] text-xs font-black transition-colors"
+                  >
+                    <Facebook className="w-3.5 h-3.5" />
+                    <span>Facebook</span>
+                  </a>
                   <a
                     href={BRAND_INFO.socials.instagram}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-rose-50 text-gray-700 hover:text-rose-600 text-xs font-black transition-colors"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-stone-100 hover:bg-rose-50 text-gray-700 hover:text-rose-600 text-xs font-black transition-colors"
                   >
                     <Instagram className="w-3.5 h-3.5" />
                     <span>Instagram</span>
@@ -471,7 +480,7 @@ Sent via Rozay Kitchen Lagos Web Platform`;
                     href={BRAND_INFO.socials.tiktok}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-orange-50 text-gray-700 hover:text-orange-600 text-xs font-black transition-colors"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-900 text-gray-700 hover:text-cyan-400 text-xs font-black transition-colors"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>TikTok</span>

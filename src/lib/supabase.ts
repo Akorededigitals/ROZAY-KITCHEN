@@ -154,7 +154,7 @@ export async function getDbProducts(fallbackData: Product[]): Promise<Product[]>
     }
 
     // Format fields correctly for frontend (converting flat DB fields)
-    return data.map((d: any) => ({
+    const dbProducts: Product[] = data.map((d: any) => ({
       id: d.id,
       name: d.name,
       category: d.category,
@@ -167,6 +167,35 @@ export async function getDbProducts(fallbackData: Product[]): Promise<Product[]>
       stockStatus: d.stock_status || d.stockStatus || "In Stock",
       rating: d.rating ? Number(d.rating) : 4.8
     }));
+
+    // Merge any items from fallbackData that might not be in DB yet
+    const dbProductIds = new Set(dbProducts.map((p) => p.id));
+    const missingDefaults = fallbackData.filter((fp) => !dbProductIds.has(fp.id));
+    
+    // Asynchronously insert missing defaults into Supabase in background
+    if (missingDefaults.length > 0 && supabase) {
+      Promise.all(
+        missingDefaults.map((item) =>
+          supabase.from("products").insert({
+            id: item.id,
+            name: item.name,
+            category: item.category,
+            description: item.description,
+            image: item.image,
+            features: item.features,
+            price_range: item.priceRange || "",
+            price: item.price,
+            discount_price: item.discountPrice || null,
+            stock_status: item.stockStatus || "In Stock",
+            rating: item.rating || 4.8
+          })
+        )
+      ).catch((err) => console.warn("Background seed sync notice:", err));
+    }
+
+    const allProducts = [...dbProducts, ...missingDefaults];
+    localStorage.setItem("rozay_products", JSON.stringify(allProducts));
+    return allProducts;
   } catch (err) {
     console.warn("Supabase products fetch failed - falling back to localStorage", err);
     const local = localStorage.getItem("rozay_products");

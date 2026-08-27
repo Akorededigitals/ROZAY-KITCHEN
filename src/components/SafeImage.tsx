@@ -29,22 +29,33 @@ export default function SafeImage({
   // Build ordered queue of image URLs to try
   const getCandidateUrls = (): string[] => {
     const urls: string[] = [];
-    if (src && src.trim()) {
-      urls.push(src.trim());
+    if (src && typeof src === "string" && src.trim()) {
+      let cleanSrc = src.trim().replace(/^["']/, "").replace(/["']$/, "");
+      if (cleanSrc.startsWith("http://")) {
+        cleanSrc = cleanSrc.replace("http://", "https://");
+      }
+      urls.push(cleanSrc);
+
       // If local asset path, add Supabase storage mirror as automatic cloud fallback
-      if (src.startsWith("/images/") || src.startsWith("images/")) {
-        const cleanPath = src.replace(/^\/?images\//, "");
+      if (cleanSrc.startsWith("/images/") || cleanSrc.startsWith("images/")) {
+        const cleanPath = cleanSrc.replace(/^\/?images\//, "");
         urls.push(`https://kzssompfuuzxauriebql.supabase.co/storage/v1/object/public/product-images/site-assets/${cleanPath}`);
       }
     }
     if (Array.isArray(fallbackSrc)) {
       fallbackSrc.forEach((f) => {
-        if (f && f.trim() && !urls.includes(f.trim())) {
-          urls.push(f.trim());
+        if (f && typeof f === "string" && f.trim()) {
+          const clean = f.trim().replace(/^["']/, "").replace(/["']$/, "");
+          if (!urls.includes(clean)) {
+            urls.push(clean);
+          }
         }
       });
-    } else if (fallbackSrc && fallbackSrc.trim() && !urls.includes(fallbackSrc.trim())) {
-      urls.push(fallbackSrc.trim());
+    } else if (fallbackSrc && typeof fallbackSrc === "string" && fallbackSrc.trim()) {
+      const clean = fallbackSrc.trim().replace(/^["']/, "").replace(/["']$/, "");
+      if (!urls.includes(clean)) {
+        urls.push(clean);
+      }
     }
 
     // Always provide reliable high-res showroom fallback if nothing else worked

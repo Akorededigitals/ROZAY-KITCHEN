@@ -75,11 +75,13 @@ function CategoryWrapper({ products, cartItems, onAddToCart, onRemoveFromCart, o
   const location = useLocation();
   const categoryPath = location.pathname.split("/").pop();
   let defaultCategory = "All";
-  if (categoryPath === "chafing-dishes") defaultCategory = "Chafing Dishes";
-  else if (categoryPath === "cooking-pots") defaultCategory = "Cooking Pots";
+  if (categoryPath === "chafing-dishes") defaultCategory = "Luxury Chafing Dishes";
+  else if (categoryPath === "cooking-pots") defaultCategory = "Premium Cooking Pots";
+  else if (categoryPath === "cookware-sets") defaultCategory = "Cookware Sets";
   else if (categoryPath === "catering-equipment") defaultCategory = "Catering Equipment";
   else if (categoryPath === "coolers-storage") defaultCategory = "Coolers & Storage";
   else if (categoryPath === "kitchen-appliances") defaultCategory = "Kitchen Appliances";
+  else if (categoryPath === "utensils-accessories") defaultCategory = "Utensils & Accessories";
 
   return (
     <ProductCatalog
@@ -491,11 +493,11 @@ export default function App() {
                   <Instagram className="w-5 h-5" />
                 </a>
                 <a
-                  href="https://www.facebook.com/share/1B62bsPzmM/"
+                  href="https://www.facebook.com/share/1chGzn65bp/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-10 h-10 rounded-xl bg-stone-900 border border-stone-800 flex items-center justify-center text-stone-300 hover:text-white hover:bg-[#1877F2] hover:border-[#1877F2]/85 transition-all duration-300 scale-100 hover:scale-110 shadow-xs"
-                  title="Facebook Business Page"
+                  title="Rozay Kitchen Facebook Page"
                 >
                   <Facebook className="w-5 h-5" />
                 </a>
