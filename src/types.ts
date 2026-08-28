@@ -31,7 +31,7 @@ export interface Order {
   items: { product: Product; quantity: number }[];
   subtotal: number;
   total: number;
-  paymentMethod: "Paystack" | "WhatsApp / Direct Transfer";
+  paymentMethod: "Paystack" | "Direct Bank Transfer" | "WhatsApp / Direct Transfer" | string;
   paymentStatus: "Pending" | "Paid" | "Failed";
   orderStatus: "Received" | "Processing" | "Dispatched" | "Delivered";
   createdAt: string;

@@ -31,11 +31,20 @@ export default function AboutSection() {
               An Elevated Cooking & Catering Experience
             </h3>
             
-            {paragraphs.map((p, index) => (
-              <p key={index} className="text-gray-600 leading-relaxed text-sm sm:text-base">
-                {p}
-              </p>
-            ))}
+            {paragraphs.map((p, index) => {
+              if (index === 1) {
+                return (
+                  <p key={index} className="text-gray-700 leading-relaxed text-sm sm:text-base font-normal">
+                    We specialize in a wide range of products, including <strong className="font-semibold text-stone-900 bg-amber-50/80 px-1.5 py-0.5 rounded border border-amber-200/50">luxury chafing dishes</strong>, <strong className="font-semibold text-stone-900 bg-amber-50/80 px-1.5 py-0.5 rounded border border-amber-200/50">food warmers</strong>, <strong className="font-semibold text-stone-900 bg-amber-50/80 px-1.5 py-0.5 rounded border border-amber-200/50">granite cookware sets</strong>, durable cooking pots, catering tools, commercial coolers, and reliable kitchen electronics designed to meet the rigorous demands of modern homes, upscale restaurants, event caterers, hotels, and luxury hospitality businesses across Nigeria.
+                  </p>
+                );
+              }
+              return (
+                <p key={index} className="text-gray-600 leading-relaxed text-sm sm:text-base">
+                  {p}
+                </p>
+              );
+            })}
 
             {/* Quick stats / highlight badges */}
             <div className="grid grid-cols-2 gap-4 pt-4">
@@ -97,7 +106,7 @@ export default function AboutSection() {
                   </p>
 
                   <p className="text-xs sm:text-sm text-gray-600 leading-relaxed pt-1">
-                    Under Alaekwe Onyebuchi's visionary direction, Rozay Kitchen has become Lagos Island's premier wholesale and retail destination for luxury chafing warmers, granite cookware sets, and industrial catering equipment.
+                    Under Alaekwe Onyebuchi's visionary direction, Rozay Kitchen has become Lagos Island's premier wholesale and retail destination for luxury chafing dishes, food warmers, granite cookware sets, and industrial catering equipment.
                   </p>
                   
                   <div className="pt-3 flex flex-wrap items-center justify-center sm:justify-start gap-3">
